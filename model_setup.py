@@ -10,12 +10,21 @@ import numpy as np
 # CONSTS AND ENUMS #
 ####################
 leakyReLU_Alpha = 0.01
-
 class ActivationFunc(Enum):
     SIGMOID = 0
     TANH = 1
     RELU = 2
     LEAKY_RELU = 3
+
+class CostFunc(Enum):
+    MEAN_SQ_ERROR = 0
+    RT_MEAN_SQ_ERROR = 1
+    MEAN_ABS_ERROR = 2
+    BINARY_CROSS_ENTROPY = 3
+    CATEGORICAL_CROSS_ENTROPY = 4
+    HINGE_LOSS = 5
+    KL_DIVERGENCE = 6
+
 
 
 #############
@@ -28,12 +37,50 @@ class ActivationFunc(Enum):
 # of a giant linear function which is pretty useless for
 # nonlinear problems).
 def activation(matrix, activationFunc):
-    if activationFunc == ActivationFunc.SIGMOID: return 1 / (1 + np.exp(-matrix))
-    elif activationFunc == ActivationFunc.TANH: return (np.exp(matrix) - np.exp(-matrix)) / (np.exp(matrix) + np.exp(-matrix))
-    elif activationFunc == ActivationFunc.RELU: return np.where(matrix >= 0, matrix, 0)
-    elif activationFunc == ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, matrix, -leakyReLU_Alpha * matrix)
+    match activationFunc:
+        case ActivationFunc.SIGMOID: return 1 / (1 + np.exp(-matrix))
+        case ActivationFunc.TANH: return (np.exp(matrix) - np.exp(-matrix)) / (np.exp(matrix) + np.exp(-matrix))
+        case ActivationFunc.RELU: return np.where(matrix >= 0, matrix, 0)
+        case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, matrix, -leakyReLU_Alpha * matrix)
 
-    raise ValueError("Invalid activation function")
+        case _: raise ValueError("Invalid activation function")
+
+# Different cost functions applicable in different modeling
+# situations. Even if multiple vectorized training or test
+# cases are run at once, this will compile the cost into a
+# scalar result.
+def cost(predicted, actual, costFunc):
+    numTests = predicted.shape[1]
+
+    match costFunc:
+        case CostFunc.MEAN_SQ_ERROR: 
+            result = (predicted - actual) ** 2
+            allResults = 1 / numTests * np.sum(result, axis = 1)
+        case CostFunc.RT_MEAN_SQ_ERROR: 
+            result = (predicted - actual) ** 2
+            allResults = (1 / numTests * np.sum(result, axis = 1)) ** 0.5
+        case CostFunc.MEAN_ABS_ERROR:
+            result = abs(predicted - actual)
+            allResults = 1 / numTests * np.sum(result, axis = 1)
+        case CostFunc.BINARY_CROSS_ENTROPY:
+            result = -(actual * np.log(predicted) + (1-actual) * np.log(1-predicted))
+            allResults = (1 / numTests) * np.sum(result, axis = 1)
+        case CostFunc.CATEGORICAL_CROSS_ENTROPY:
+            result = -np.sum((actual * np.log(predicted)), axis = 0)
+            allResults = (1 / numTests) * np.sum(result)
+        case CostFunc.HINGE_LOSS:
+            result = np.maximum(0, 1 - actual * predicted)
+            allResults = np.mean(result, axis = 1)
+        case CostFunc.KL_DIVERGENCE:
+            result = np.sum((actual * np.log(actual / predicted)), axis = 0)
+            allResults = np.mean(result)
+
+        case _: raise ValueError("Invalid cost function")
+
+    cost = allResults if len(allResults.shape) == 1 else np.sum(allResults)
+    return cost
+
+    
 
 # Create weights and biases for each hidden layer + output layer
 # of the neural network. Weights are THE MOST IMPORTANT PART of

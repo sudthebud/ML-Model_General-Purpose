@@ -12,7 +12,7 @@ import model_setup
 #############
 class Model:
 
-    def __init__(self, numInputNodes: int, numHiddenLayerNodes: list[int], numOutputNodes: int, activationFunc: int | list[int]):
+    def __init__(self, numInputNodes: int, numHiddenLayerNodes: list[int], numOutputNodes: int, activationFunc: int | list[int], costFunc: int):
         self.numInputNodes = numInputNodes
         self.numHiddenLayerNodes = numHiddenLayerNodes
         self.numOutputNodes = numOutputNodes
