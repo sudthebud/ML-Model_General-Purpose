@@ -41,7 +41,7 @@ def activation(matrix, activationFunc):
 # an accurate output. Biases are added to the output of each layer
 # to shift the activation function linearly, and also prevent the 
 # nodes of a neural network from zeroing out.
-def createWeightAndBias(prevLayerNodesNum, currLayerNodesNum):
+def create_weight_and_bias(prevLayerNodesNum, currLayerNodesNum):
     weight = np.random.randn(currLayerNodesNum, prevLayerNodesNum) # curr * prev so that matmul works out such that output has same number of rows as nodes in current hidden layer
     bias = np.random.randn(currLayerNodesNum)
 
