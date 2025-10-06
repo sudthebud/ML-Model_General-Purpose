@@ -66,18 +66,26 @@ def cost(predicted, actual, costFunc):
     numTests = predicted.shape[1]
 
     match costFunc:
-        case CostFunc.MEAN_SQ_ERROR: # 1 / n * sum((y_p - y_a)^2) 
+        case CostFunc.MEAN_SQ_ERROR: 
+            # 1 / n * sum((y_p - y_a)^2) 
             result = (predicted - actual) ** 2
             allResults = 1 / numTests * np.sum(result, axis = 1)
-        case CostFunc.RT_MEAN_SQ_ERROR: # sqrt(1 / n * sum((y_p - y_a)^2))
+
+        case CostFunc.RT_MEAN_SQ_ERROR: 
+            # sqrt(1 / n * sum((y_p - y_a)^2))
             result = (predicted - actual) ** 2
             allResults = (1 / numTests * np.sum(result, axis = 1)) ** 0.5
-        case CostFunc.MEAN_ABS_ERROR: # 1 / n * sum(|y_p - y_a|)
+
+        case CostFunc.MEAN_ABS_ERROR: 
+            # 1 / n * sum(|y_p - y_a|)
             result = abs(predicted - actual)
             allResults = 1 / numTests * np.sum(result, axis = 1)
-        case CostFunc.BINARY_CROSS_ENTROPY: # 1 / n * sum(-(log(y_p) * y_a + (1-y_a) * log(1-y_p)))
+
+        case CostFunc.BINARY_CROSS_ENTROPY: 
+            # 1 / n * sum(-(log(y_p) * y_a + (1-y_a) * log(1-y_p)))
             result = -(actual * np.log(predicted) + (1-actual) * np.log(1-predicted))
             allResults = (1 / numTests) * np.sum(result, axis = 1)
+
         # case CostFunc.CATEGORICAL_CROSS_ENTROPY:
         #     result = -np.sum((actual * np.log(predicted)), axis = 0)
         #     allResults = (1 / numTests) * np.sum(result)
@@ -87,6 +95,7 @@ def cost(predicted, actual, costFunc):
         # case CostFunc.KL_DIVERGENCE:
         #     result = np.sum((actual * np.log(actual / predicted)), axis = 0)
         #     allResults = np.mean(result)
+
 
         case _: raise ValueError("Invalid cost function")
 
@@ -99,19 +108,27 @@ def cost_derivative(predicted, actual, costFunc):
     numTests = predicted.shape[1]
 
     match costFunc:
-        case CostFunc.MEAN_SQ_ERROR: # 1 / n * sum(2 * (y_a - y_p))
+        case CostFunc.MEAN_SQ_ERROR: 
+            # 1 / n * sum(2 * (y_a - y_p))
             result = 2 * (actual - predicted)
             allResults =  1 / numTests * np.sum(result, axis = 1)
-        case CostFunc.RT_MEAN_SQ_ERROR: # 1 / 2 * 1 / sqrt(1 / n * sum((y_p - y_a)^2))   *   1 / n * sum(2 * (y_a - y_p))
-            result_notderived = (predicted - actual) ** 2
+
+        case CostFunc.RT_MEAN_SQ_ERROR: 
+            # 1 / 2 * 1 / sqrt(1 / n * sum((y_p - y_a)^2))   *   1 / n * sum(2 * (y_a - y_p))
+            resultNotDerived = (predicted - actual) ** 2
             result = 2 * (actual - predicted)
-            allResults = 1 / (2 * (1 / numTests * np.sum(result_notderived, axis = 1)) ** 0.5) * 1 / numTests * np.sum(result, axis = 1)
-        case CostFunc.MEAN_ABS_ERROR: # 1 / n * sum((y_p - y_a) / |y_p - y_a|)
+            allResults = 1 / (2 * (1 / numTests * np.sum(resultNotDerived, axis = 1)) ** 0.5) * 1 / numTests * np.sum(result, axis = 1)
+        
+        case CostFunc.MEAN_ABS_ERROR: 
+            # 1 / n * sum((y_p - y_a) / |y_p - y_a|)
             result = (predicted - actual) / abs(predicted - actual)
             allResults = 1 / numTests * np.sum(result, axis = 1)
-        case CostFunc.BINARY_CROSS_ENTROPY: # 1 / n * sum(y_a / y_p + (1 - y_a) / (1 - y_p))
+        
+        case CostFunc.BINARY_CROSS_ENTROPY: 
+            # 1 / n * sum(y_a / y_p + (1 - y_a) / (1 - y_p))
             result = actual / predicted + (1 - actual) / (1 - predicted)
             allResults = 1 / numTests * np.sum(result, axis = 1)
+
 
         case _: raise ValueError("Invalid cost function")
 
