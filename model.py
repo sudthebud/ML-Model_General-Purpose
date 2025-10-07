@@ -12,7 +12,7 @@ import model_setup
 #############
 class Model:
 
-    def __init__(self, numInputNodes: int, numHiddenLayerNodes: list[int], numOutputNodes: int, activationFunc: int | list[int], costFunc: int):
+    def __init__(self, numInputNodes: int, numHiddenLayerNodes: list[int], numOutputNodes: int, activationFunc: int | list[int], costFunc: int, gradientFactor: float):
         self.__numInputNodes = numInputNodes
         self.__numHiddenLayerNodes = numHiddenLayerNodes
         self.__numOutputNodes = numOutputNodes
@@ -20,20 +20,21 @@ class Model:
             raise ValueError("activationFunc list length must be same as the number of layers (except for the input layer)")
         else: self.__activationFunc = activationFunc
         self.__costFunc = costFunc
+        self.__gradientFactor = gradientFactor
 
         self.__setup()
 
     # Create the list of weights and biases
     def __setup(self):
-        self.weights = []
-        self.biases = []
+        self.__weights = []
+        self.__biases = []
         
         for i in range(len(self.__numHiddenLayerNodes) + 1):
             weight, bias = model_setup.create_weight_and_bias(self.__numHiddenLayerNodes[i-1] if i > 0 else self.__numInputNodes,
                                                            self.__numHiddenLayerNodes[i] if i < len(self.__numHiddenLayerNodes) else self.__numOutputNodes)
             
-            self.weights.append(weight)
-            self.biases.append(bias)
+            self.__weights.append(weight)
+            self.__biases.append(bias)
 
 
     # Run the data through the layers of the neural network,
@@ -58,12 +59,12 @@ class Model:
             # current layer is 3, then the number of weights is
             # 3 (for current layer nodes) x 2 (for previous layer
             # nodes), and the result is a 3 x 1 matrix.
-            currLayer = self.weights[i] @ layers[-1]
+            currLayer = self.__weights[i] @ layers[-1]
 
             # Add the biases of each node in the layer. Numpy will
             # automatically broadcast the bias matrix if the number
             # of columns in the current layer is greater than 1.
-            currLayer += self.biases[i]
+            currLayer += self.__biases[i]
 
             # Apply the activation function to all nodes in the 
             # current layer.
@@ -84,11 +85,41 @@ class Model:
         
         for i in range(len(layers), 0): # For each layer in the neural network besides the input layer (going backwards)...
 
+            # Compute derivative of activation function with respect to neuron output
             dA_dZ = model_setup.activation_derivative(layers[i], self.__activationFunc)
             chainedDerivatives = chainedDerivatives @ dA_dZ.T
 
+            # Compute derivative of neuron output with respect to weights
+            # and use chain derivatives to compute derivative of cost with
+            # respect to weights for this layer
             dZ_dW = layers[i-1]
             weightGradient = chainedDerivatives @ dZ_dW.T
             weightGradients.insert(0, weightGradient)
-            
-            
+
+            # Compute derivative of neuron output with respect to biases
+            # and use chain derivatives to compute derivative of cost with
+            # respect to biases for this layer (dZ_dB = 1, so no need to 
+            # calculate the derivative itself)
+            biasGradient = np.sum(chainedDerivatives, axis = 1)
+            biasGradients.insert(0, biasGradient)
+
+        
+        for i in range(len(layers) - 1): # For each layer in the neural network besides the output layer...
+
+            # Subtract a small amount of the layer's weights' gradients from
+            # the layers' weights. We subtract because dC_dW is a measure of 
+            # how much one weight increases the result of the cost function - 
+            # so, if we decrease the value of the weight, we decrease the result 
+            # of the cost function, and vice versa if the gradient decreases
+            # the result of the function. The gradient tells us the steepness
+            # as to how much the weight increases or decreases the resulting cost
+            # function, and allows us to update our weights by a factor of this 
+            # slope accordingly, giving large decreases/increases for weights
+            # that are a much bigger factor in the cost function's result.
+            # We use a gradient factor (learning rate) so that the model
+            # doesn't update too drastically at once, but it has to be fine
+            # tuned so that it doesn't make gradient descent useless either.
+            self.__weights -= self.__gradientFactor * weightGradients[i]
+
+            # Do the same thing for biases
+            self.__biases -= self.__gradientFactor * biasGradients[i]
