@@ -103,6 +103,11 @@ class Model:
             biasGradient = np.sum(chainedDerivatives, axis = 1)
             biasGradients.insert(0, biasGradient)
 
+            # Compute derivative of neuron output with respect to activation function
+            # of LAST layer
+            dZ_dA = self.__weights[i-1]
+            chainedDerivatives = dZ_dA.T @ chainedDerivatives
+
         
         for i in range(len(layers) - 1): # For each layer in the neural network besides the output layer...
 
