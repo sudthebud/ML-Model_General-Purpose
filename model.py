@@ -12,26 +12,32 @@ import model_setup
 #############
 class Model:
 
-    def __init__(self, numInputNodes: int, numHiddenLayerNodes: list[int], numOutputNodes: int, activationFunc: int | list[int], costFunc: int, gradientFactor: float):
+    def __init__(self, numInputNodes: int, numHiddenLayerNodes: list[int], numOutputNodes: int, activationFunc: int | list[int] = model_setup.ActivationFunc.SIGMOID):
         self.__numInputNodes = numInputNodes
         self.__numHiddenLayerNodes = numHiddenLayerNodes
         self.__numOutputNodes = numOutputNodes
         if isinstance(activationFunc, list[int]) and len(activationFunc) != len(numHiddenLayerNodes) + 1:
             raise ValueError("activationFunc list length must be same as the number of layers (except for the input layer)")
         else: self.__activationFunc = activationFunc
-        self.__costFunc = costFunc
-        self.__gradientFactor = gradientFactor
 
         self.__setup()
 
-    # Create the list of weights and biases
+    # Create weights and biases for each hidden layer + output layer
+    # of the neural network. Weights are THE MOST IMPORTANT PART of
+    # a neural network, as we tune these such that the network produces
+    # an accurate output. Biases are added to the output of each layer
+    # to shift the activation function linearly, and also prevent the 
+    # nodes of a neural network from zeroing out.
     def __setup(self):
         self.__weights = []
         self.__biases = []
         
         for i in range(len(self.__numHiddenLayerNodes) + 1):
-            weight, bias = model_setup.create_weight_and_bias(self.__numHiddenLayerNodes[i-1] if i > 0 else self.__numInputNodes,
-                                                           self.__numHiddenLayerNodes[i] if i < len(self.__numHiddenLayerNodes) else self.__numOutputNodes)
+            currLayerNodesNum = self.__numHiddenLayerNodes[i-1] if i > 0 else self.__numInputNodes
+            prevLayerNodesNum = self.__numHiddenLayerNodes[i] if i < len(self.__numHiddenLayerNodes) else self.__numOutputNodes
+            
+            weight = np.random.randn(currLayerNodesNum, prevLayerNodesNum) # curr * prev so that matmul works out such that output has same number of rows as nodes in current hidden layer
+            bias = np.random.randn(currLayerNodesNum)
             
             self.__weights.append(weight)
             self.__biases.append(bias)
@@ -73,14 +79,23 @@ class Model:
             layers.append(currLayer)
             if i == len(self.__numHiddenLayerNodes) + 1: return layers
 
-    def __back_propagation(self, layers, expected_out):
+    # Use the resulting predictions from the feed forward run
+    # to update the weights and biases of the model. This is done
+    # via gradient descent, where we use the derivative chain rule
+    # to determine the effect that a single weight has on the cost
+    # function, then change the weights and biases by a small amount
+    # based on that effect. Running this in tandem with feed forward
+    # many times results in a model whose weights and biases are
+    # slowly tuned to output the desired result with a high level
+    # of precision (if the model parameters are also tuned well).
+    def __back_propagation(self, layers, expectedOut, costFunc, learningRate):
 
         weightGradients, biasGradients = [], []
         
         # Derivative of cost function with respect to final
         # layer output result (which is the result of the
         # activation function).
-        dC_dA = model_setup.cost_derivative(layers[-1], expected_out, self.__costFunc)
+        dC_dA = model_setup.cost_derivative(layers[-1], expectedOut, costFunc)
         chainedDerivatives = dC_dA
         
         for i in range(len(layers), 0): # For each layer in the neural network besides the input layer (going backwards)...
@@ -124,7 +139,43 @@ class Model:
             # We use a gradient factor (learning rate) so that the model
             # doesn't update too drastically at once, but it has to be fine
             # tuned so that it doesn't make gradient descent useless either.
-            self.__weights -= self.__gradientFactor * weightGradients[i]
+            self.__weights -= learningRate * weightGradients[i]
 
             # Do the same thing for biases
-            self.__biases -= self.__gradientFactor * biasGradients[i]
+            self.__biases -= learningRate * biasGradients[i]
+
+    # Train the model by running feed forward and back propagation in
+    # succession for several iterations (epochs). Feed forward will
+    # calculate the value of each node in each layer; then, back propagation
+    # will determine how much every weight and bias had an effect on making
+    # the feed forward output layer result as incorrect as it is (using a
+    # cost function that we define) and update the weights and biases
+    # accordingly, by a factor of the learning rate.
+    def train(self, inputs: np.array, expectedOut: np.array, epochs: int = 1000, costFunc: int = model_setup.CostFunc.BINARY_CROSS_ENTROPY, learningRate: float = 0.01):
+        if inputs.shape[0] != self.__numInputNodes:
+            raise ValueError("Number of input features must match value set for numInputNodes")
+        if expectedOut.shape[0] != self.__numOutputNodes:
+            raise ValueError("Number of output nodes must match value set for numOutputNodes")
+        if epochs <= 0:
+            raise ValueError("Number of epochs must be greater than 0")
+        
+        costs = []
+
+        for _ in range(epochs): # For every iteration (epoch)...
+
+            # Run the feed forward process and return the resulting node values for every layer 
+            layers = self.__feed_forward(inputs)
+
+            # Determine the cost of this epoch (measure of how wrong the model was)
+            # Not used in feed forward or back propagation, but to determine accuracy
+            # of the model per epoch and adjust number of epochs accordingly (don't need
+            # to run 1000 epochs if the model reaches a good accuracy at 50 epochs)
+            cost = model_setup.cost(layers[-1], expectedOut, costFunc)
+            costs.append(cost)
+
+            # Run the back propagation process to update the weights and biases
+            # based on how much they affect the result of the cost function (and
+            # thus the output's accuracy)
+            self.__back_propagation(layers, expectedOut, costFunc, learningRate)
+
+        return costs 
