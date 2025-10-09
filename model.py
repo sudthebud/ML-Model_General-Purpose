@@ -179,3 +179,20 @@ class Model:
             self.__back_propagation(layers, expectedOut, costFunc, learningRate)
 
         return costs 
+
+    # Use the model on any number of data points. This method will run the 
+    # feed forward algorithm on the input (only once since we have used
+    # vectorization to calculate the result of all inputs at once), then
+    # return the result of the feed forward process, with the outputs nodes
+    # reflecting the predicted quantitative values (for linear regression)
+    # or likelihood of the result falling into one or more classes (for 
+    # classification).
+    def predict(self, inputs: np.array):
+        if inputs.shape[0] != self.__numInputNodes:
+            raise ValueError("Number of input features must match value set for numInputNodes")
+        
+        # Run the feed forward algorithm and return the output layer
+        layers = self.__feed_forward(inputs)
+        predicted = layers[-1]
+
+        return predicted
