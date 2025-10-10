@@ -16,7 +16,7 @@ class Model:
         self.__numInputNodes = numInputNodes
         self.__numHiddenLayerNodes = numHiddenLayerNodes
         self.__numOutputNodes = numOutputNodes
-        if isinstance(activationFunc, list[int]) and len(activationFunc) != len(numHiddenLayerNodes) + 1:
+        if isinstance(activationFunc, list) and len(activationFunc) != len(numHiddenLayerNodes) + 1:
             raise ValueError("activationFunc list length must be same as the number of layers (except for the input layer)")
         else: self.__activationFunc = activationFunc
 
@@ -32,12 +32,13 @@ class Model:
         self.__weights = []
         self.__biases = []
         
-        for i in range(len(self.__numHiddenLayerNodes) + 1):
-            currLayerNodesNum = self.__numHiddenLayerNodes[i-1] if i > 0 else self.__numInputNodes
-            prevLayerNodesNum = self.__numHiddenLayerNodes[i] if i < len(self.__numHiddenLayerNodes) else self.__numOutputNodes
+        for i in range(len(self.__numHiddenLayerNodes) + 1): # For every hidden layer + the output layer...
+            prevLayerNodesNum = self.__numHiddenLayerNodes[i-1] if i > 0 else self.__numInputNodes
+            currLayerNodesNum = self.__numHiddenLayerNodes[i] if i < len(self.__numHiddenLayerNodes) else self.__numOutputNodes
             
+            # Creates weight and bias matrices, with weight being curr * prev and bias being curr * 1
             weight = np.random.randn(currLayerNodesNum, prevLayerNodesNum) # curr * prev so that matmul works out such that output has same number of rows as nodes in current hidden layer
-            bias = np.random.randn(currLayerNodesNum)
+            bias = np.random.randn(currLayerNodesNum, 1)
             
             self.__weights.append(weight)
             self.__biases.append(bias)
@@ -74,10 +75,11 @@ class Model:
 
             # Apply the activation function to all nodes in the 
             # current layer.
-            currLayer = model_setup.activation(currLayer, self.__activationFunc if isinstance(self.__activationFunc, list[int]) else self.__activationFunc[i])
+            currLayer = model_setup._activation(currLayer, self.__activationFunc[i] if isinstance(self.__activationFunc, list) else self.__activationFunc)
 
             layers.append(currLayer)
-            if i == len(self.__numHiddenLayerNodes) + 1: return layers
+
+        return layers
 
     # Use the resulting predictions from the feed forward run
     # to update the weights and biases of the model. This is done
@@ -95,14 +97,14 @@ class Model:
         # Derivative of cost function with respect to final
         # layer output result (which is the result of the
         # activation function).
-        dC_dA = model_setup.cost_derivative(layers[-1], expectedOut, costFunc)
+        dC_dA = model_setup._cost_derivative(layers[-1], expectedOut, costFunc)
         chainedDerivatives = dC_dA
         
-        for i in range(len(layers), 0): # For each layer in the neural network besides the input layer (going backwards)...
+        for i in range(len(layers)-1, 0, -1): # For each layer in the neural network besides the input layer (going backwards)...
 
             # Compute derivative of activation function with respect to neuron output
-            dA_dZ = model_setup.activation_derivative(layers[i], self.__activationFunc)
-            chainedDerivatives = chainedDerivatives @ dA_dZ.T
+            dA_dZ = model_setup._activation_derivative(layers[i], self.__activationFunc)
+            chainedDerivatives = chainedDerivatives * dA_dZ
 
             # Compute derivative of neuron output with respect to weights
             # and use chain derivatives to compute derivative of cost with
@@ -115,7 +117,7 @@ class Model:
             # and use chain derivatives to compute derivative of cost with
             # respect to biases for this layer (dZ_dB = 1, so no need to 
             # calculate the derivative itself)
-            biasGradient = np.sum(chainedDerivatives, axis = 1)
+            biasGradient = np.sum(chainedDerivatives, axis = 1, keepdims=True) # keepdims keeps the reduced dimension so it stays a 2D array
             biasGradients.insert(0, biasGradient)
 
             # Compute derivative of neuron output with respect to activation function
@@ -139,10 +141,10 @@ class Model:
             # We use a gradient factor (learning rate) so that the model
             # doesn't update too drastically at once, but it has to be fine
             # tuned so that it doesn't make gradient descent useless either.
-            self.__weights -= learningRate * weightGradients[i]
+            self.__weights[i] -= learningRate * weightGradients[i]
 
             # Do the same thing for biases
-            self.__biases -= learningRate * biasGradients[i]
+            self.__biases[i] -= learningRate * biasGradients[i]
 
     # Train the model by running feed forward and back propagation in
     # succession for several iterations (epochs). Feed forward will
@@ -151,11 +153,21 @@ class Model:
     # the feed forward output layer result as incorrect as it is (using a
     # cost function that we define) and update the weights and biases
     # accordingly, by a factor of the learning rate.
-    def train(self, inputs: np.array, expectedOut: np.array, epochs: int = 1000, costFunc: int = model_setup.CostFunc.BINARY_CROSS_ENTROPY, learningRate: float = 0.01):
+    def train(self, inputs: np.array, expectedOut: np.array, epochs: int = 1000, costFunc: int = model_setup.CostFunc.BINARY_CROSS_ENTROPY, learningRate: float = 0.1):
+        if len(inputs.shape) != 2:
+            if len(inputs.shape) == 1: input = input[:, np.newaxis]
+            else: raise ValueError("Dimensions of input must be 2D")
+        if len(expectedOut.shape) != 2:
+            if len(expectedOut.shape) == 1: expectedOut = expectedOut[:, np.newaxis]
+            else: raise ValueError("Dimensions of output must be 2D")
+
+        inputs = inputs.T
+        expectedOut = expectedOut.T
+
         if inputs.shape[0] != self.__numInputNodes:
             raise ValueError("Number of input features must match value set for numInputNodes")
         if expectedOut.shape[0] != self.__numOutputNodes:
-            raise ValueError("Number of output nodes must match value set for numOutputNodes")
+            raise ValueError("Number of output features must match value set for numOutputNodes")
         if epochs <= 0:
             raise ValueError("Number of epochs must be greater than 0")
         
@@ -170,7 +182,7 @@ class Model:
             # Not used in feed forward or back propagation, but to determine accuracy
             # of the model per epoch and adjust number of epochs accordingly (don't need
             # to run 1000 epochs if the model reaches a good accuracy at 50 epochs)
-            cost = model_setup.cost(layers[-1], expectedOut, costFunc)
+            cost = model_setup._cost(layers[-1], expectedOut, costFunc)
             costs.append(cost)
 
             # Run the back propagation process to update the weights and biases
@@ -188,6 +200,12 @@ class Model:
     # or likelihood of the result falling into one or more classes (for 
     # classification).
     def predict(self, inputs: np.array):
+        if len(inputs.shape) != 2:
+            if len(inputs.shape) == 1: input = input[:, np.newaxis]
+            else: raise ValueError("Dimensions of input must be 2D")
+
+        inputs = inputs.T
+
         if inputs.shape[0] != self.__numInputNodes:
             raise ValueError("Number of input features must match value set for numInputNodes")
         
