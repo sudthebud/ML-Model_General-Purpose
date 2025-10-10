@@ -160,7 +160,10 @@ class Model:
         if len(expectedOut.shape) != 2:
             if len(expectedOut.shape) == 1: expectedOut = expectedOut[:, np.newaxis]
             else: raise ValueError("Dimensions of output must be 2D")
+        if inputs.shape[0] != expectedOut.shape[0]:
+            raise ValueError("Number of training samples does not equal number of outputs")
 
+        # Transpose into n features x m samples
         inputs = inputs.T
         expectedOut = expectedOut.T
 
@@ -170,6 +173,10 @@ class Model:
             raise ValueError("Number of output features must match value set for numOutputNodes")
         if epochs <= 0:
             raise ValueError("Number of epochs must be greater than 0")
+        
+        # Shuffle training data
+        inputs, expectedOut = model_setup.shuffle_dataset(inputs, expectedOut)
+
         
         costs = []
 
@@ -204,6 +211,7 @@ class Model:
             if len(inputs.shape) == 1: input = input[:, np.newaxis]
             else: raise ValueError("Dimensions of input must be 2D")
 
+        # Transpose into n features x m samples
         inputs = inputs.T
 
         if inputs.shape[0] != self.__numInputNodes:

@@ -15,7 +15,7 @@ This model is configurable, allowing a user who imports these Python scripts to 
 ```python
 # Imports
 from model import Model
-from model_setup import ActivationFunc, CostFunc
+from model_setup import shuffle_dataset, ActivationFunc, CostFunc
 
 
 # Data
@@ -25,6 +25,8 @@ input_data = np.array([
     [150, 10, 70]
 ])
 output_data = np.array([1, 0, 1])
+
+input_data, output_data = shuffle_dataset(input_data, output_data)
 
 # Setup
 model = Model(
@@ -37,7 +39,7 @@ model = Model(
 
 # Train
 model.train(
-    inputs = input,
+    inputs = input_data,
     expectedOut = output_data,
     epochs = 10,
     costFunc = CostFunc.BINARY_CROSS_ENTROPY,
@@ -57,12 +59,17 @@ prediction = model.predict(
 - Data normalization
 - Residual network and ResNet
 - Batch normalization
-- Training data shuffling
 - Neural network regularization
+- Handle multi dimensional inputs
+- Split train and test dataset, then train and predict in one go
 
 # Credits
-- [Learn to Build a Neural Network from Scratch](https://medium.com/@waadlingaadil/learn-to-build-a-neural-network-from-scratch-yes-really-cac4ca457efc#:~:text=1) by Aadil Mallick
-- [The Importance and Reasoning behind Activation Functions](https://towardsdatascience.com/the-importance-and-reasoning-behind-activation-functions-4dc00e74db41/) by Zach Brodtman
-- [Undestanding Cost Functions in Machine Learning: Types and Applications](https://medium.com/@anishnama20/understanding-cost-functions-in-machine-learning-types-and-applications-cd7d8cc4b47d) by Anishnama
-- [Backpropagation, intuitively | Deep Learning Chapter 3](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by 3Blue1Brown
-- [Backpropagation calculus | Deep Learning Chapter 4](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by 3Blue1Brown
+- Basic neural network concepts and math
+  - [Learn to Build a Neural Network from Scratch](https://medium.com/@waadlingaadil/learn-to-build-a-neural-network-from-scratch-yes-really-cac4ca457efc#:~:text=1) by Aadil Mallick
+  - [The Importance and Reasoning behind Activation Functions](https://towardsdatascience.com/the-importance-and-reasoning-behind-activation-functions-4dc00e74db41/) by Zach Brodtman
+  - [Undestanding Cost Functions in Machine Learning: Types and Applications](https://medium.com/@anishnama20/understanding-cost-functions-in-machine-learning-types-and-applications-cd7d8cc4b47d) by Anishnama
+  - [Backpropagation, intuitively | Deep Learning Chapter 3](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by 3Blue1Brown
+  - [Backpropagation calculus | Deep Learning Chapter 4](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by 3Blue1Brown
+- Data handling
+  - [What is Shuffling the Data? A Guide for Students](https://medium.com/@sanjay_dutta/what-is-shuffling-the-data-a-guide-for-students-0f874572baf6) by Sanjay Dutta
+  - [Why should the data be shuffled for machine learning tasks](https://datascience.stackexchange.com/questions/24511/why-should-the-data-be-shuffled-for-machine-learning-tasks) on StackExchange

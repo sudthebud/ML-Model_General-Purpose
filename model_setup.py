@@ -31,6 +31,21 @@ class CostFunc(Enum):
 # FUNCTIONS #
 #############
 
+# Function to shuffle training and output data together. Shuffling
+# data is useful so that the model does not learn to recognize patterns
+# in the data order or the model can "bounce out" of a local minimum
+# of the cost function during training.
+def shuffle_dataset(inputs, outputs):
+    rng = np.random.default_rng()
+    permutationIndices = rng.permutation(inputs[0].shape[1])
+
+    inputs = inputs[:, permutationIndices]
+    outputs = outputs[:, permutationIndices]
+
+    return inputs, outputs
+
+
+
 # Nonlinear activation function that converts neuron outputs.
 # Necessary to introduce nonlinearity to neural network
 # (otherwise the result of the network is basically the output
