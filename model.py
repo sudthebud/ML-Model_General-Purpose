@@ -155,10 +155,12 @@ class Model:
     # accordingly, by a factor of the learning rate.
     def train(self, inputs: np.array, expectedOut: np.array, epochs: int = 1000, costFunc: int = model_setup.CostFunc.BINARY_CROSS_ENTROPY, learningRate: float = 0.1):
         if len(inputs.shape) != 2:
-            if len(inputs.shape) == 1: input = input[:, np.newaxis]
+            if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
             else: raise ValueError("Dimensions of input must be 2D")
         if len(expectedOut.shape) != 2:
-            if len(expectedOut.shape) == 1: expectedOut = expectedOut[:, np.newaxis]
+            if len(expectedOut.shape) == 1: 
+                if inputs.shape[0] == 1 and expectedOut.shape[0] == self.__numOutputNodes: expectedOut = expectedOut[np.newaxis, :]
+                else: expectedOut = expectedOut[:, np.newaxis]
             else: raise ValueError("Dimensions of output must be 2D")
         if inputs.shape[0] != expectedOut.shape[0]:
             raise ValueError("Number of training samples does not equal number of outputs")
@@ -208,7 +210,7 @@ class Model:
     # classification).
     def predict(self, inputs: np.array):
         if len(inputs.shape) != 2:
-            if len(inputs.shape) == 1: input = input[:, np.newaxis]
+            if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
             else: raise ValueError("Dimensions of input must be 2D")
 
         # Transpose into n features x m samples
@@ -220,5 +222,11 @@ class Model:
         # Run the feed forward algorithm and return the output layer
         layers = self.__feed_forward(inputs)
         predicted = layers[-1]
+
+        # Transpose into m samples x n features, and remove axes if it is convenient
+        predicted = predicted.T
+        if predicted.shape == (1, 1): predicted = predicted[0, 0]
+        elif predicted.shape[0] == 1: predicted = np.reshape(predicted, predicted.shape[1])
+        elif predicted.shape[1] == 1: predicted = np.reshape(predicted, predicted.shape[0])
 
         return predicted

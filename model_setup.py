@@ -37,7 +37,7 @@ class CostFunc(Enum):
 # of the cost function during training.
 def shuffle_dataset(inputs, outputs):
     rng = np.random.default_rng()
-    permutationIndices = rng.permutation(inputs[0].shape[1])
+    permutationIndices = rng.permutation(inputs.shape[1])
 
     inputs = inputs[:, permutationIndices]
     outputs = outputs[:, permutationIndices]
