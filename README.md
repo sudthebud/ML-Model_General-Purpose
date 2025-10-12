@@ -56,7 +56,6 @@ prediction = model.predict(
 ## Things to Add / Experiment With
 - Change weight and bias initialization
 - Adding a learning rate scheduler
-- Data standardization
 - Residual network and ResNet
 - Batch normalization
 - Neural network regularization
@@ -65,6 +64,7 @@ prediction = model.predict(
 - Data, weight, and gradient clipping
 - Implement model metrics
 - Apply other normalization techniques
+- Rename this to a Neural net repo
 
 # Resources
 - Basic neural network concepts and math

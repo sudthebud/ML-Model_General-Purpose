@@ -44,6 +44,7 @@ class Model:
     # 
     # Additionally, set up other variables for the machine learning model.
     def __setup(self):
+        # Set weights
         self.__weights = []
         self.__biases = []
         
@@ -58,8 +59,13 @@ class Model:
             self.__weights.append(weight)
             self.__biases.append(bias)
 
+
+        # Set cached variables for normalization and standardization
         self.__normalizationMin_CACHE = None
-        self.__normalizationMax__CACHE = None
+        self.__normalizationMax_CACHE = None
+
+        self.__standardizationMean_CACHE = None
+        self.__standardizationStDev_CACHE = None
 
 
     # Run the data through the layers of the neural network,
@@ -195,10 +201,12 @@ class Model:
             raise ValueError("Number of epochs must be greater than 0")
         
         # Shuffle training data
-        inputs, expectedOut = model_setup.shuffle_dataset(inputs, expectedOut)
+        # inputs, expectedOut = model_setup.shuffle_dataset(inputs, expectedOut)
 
-        # Normalize training data (only applicable on first method call)
-        if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax__CACHE = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax__CACHE)
+        # Normalize training data
+        if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
+        # Standardize training data
+        elif self.__standardize: inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE = model_setup._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
 
         
         costs = []
@@ -241,7 +249,9 @@ class Model:
             raise ValueError("Number of input features must match value set for numInputNodes")
         
         # Normalize prediction input
-        if self.__normalize: inputs, _, _ = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax__CACHE)
+        if self.__normalize: inputs, _, _ = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
+        # Standardize prediction input
+        elif self.__standardize: inputs, _, _ = model_setup._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
 
         
         # Run the feed forward algorithm and return the output layer

@@ -46,11 +46,13 @@ def shuffle_dataset(inputs, outputs):
 
 # Normalize training data, and save the input metrics for normalization
 # (e.g. min, max) to be cached for when we have to normalize prediction
-# inputs by the same metrics. This method will only set the normalization
-# metrics when the first set of training data is given to the model (a
-# large batch of >1 samples of training data).
+# inputs by the same metrics. Normalization is useful to prevent features
+# that are inherently going to be larger from skewing the output values
+# of nodes in the machine learning model.
 # 
-# Currently, the method implemented is min-max normalization.
+# This method will only set the normalization metrics when the first set
+# of training data is given to the model (a large batch of >1 samples of 
+# training data). Currently, the method implemented is min-max normalization.
 def _normalization(inputs, normalizationMin_CACHE, normalizationMax_CACHE):
     if normalizationMin_CACHE is None and normalizationMax_CACHE is None and inputs.shape[1] > 1:
         normalizationMin_CACHE = np.min(inputs, axis=1)[:, np.newaxis]
@@ -63,8 +65,28 @@ def _normalization(inputs, normalizationMin_CACHE, normalizationMax_CACHE):
     else:
         return inputs, normalizationMin_CACHE, normalizationMax_CACHE
 
-# def _standardization(inputs):
+# Standardize / standard scale training data, and save the input metrics
+# for standardization (mean and standard deviation) to be cached for when
+# we have to standardize prediction inputs by the same metrics. Standardization
+# is useful for the same reasons as normalization, except here, we scale
+# feature values by the their variance from the mean. This method is less
+# susceptible to outliers than min-max normalization and is useful
+# for normally distributed data.
+# 
+# This method will only set the standardization metrics when the first set
+# of training data is given to the model (a large batch of >1 samples of 
+# training data).
+def _standardization(inputs, standardizationMean_CACHE, standardizationStDev_CACHE):
+    if standardizationMean_CACHE is None and standardizationStDev_CACHE is None and inputs.shape[1] > 1:
+        standardizationMean_CACHE = np.mean(inputs, axis=1)[:, np.newaxis]
+        standardizationStDev_CACHE = np.std(inputs, axis=1)[:, np.newaxis]
 
+    if standardizationMean_CACHE is not None and standardizationStDev_CACHE is not None:
+        standardizedInputs = (inputs - standardizationMean_CACHE) / standardizationStDev_CACHE
+
+        return standardizedInputs, standardizationMean_CACHE, standardizationStDev_CACHE
+    else:
+        return inputs, standardizationMean_CACHE, standardizationStDev_CACHE
 
 
 
