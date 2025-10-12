@@ -9,6 +9,15 @@ import numpy as np
 ####################
 # CONSTS AND ENUMS #
 ####################
+weight_and_bias_rng = np.random.default_rng()
+class WeightInitFunc(Enum):
+    RANDOM_UNIFORM = 0
+    RANDOM_NORMAL = 1
+    XAVIER_UNIFORM = 2
+    XAVIER_NORMAL = 3
+    HE_UNIFORM = 4
+    HE_NORMAL = 5
+
 _leakyReLU_Alpha = 0.01
 class ActivationFunc(Enum):
     SIGMOID = 0
@@ -87,6 +96,56 @@ def _standardization(inputs, standardizationMean_CACHE, standardizationStDev_CAC
         return standardizedInputs, standardizationMean_CACHE, standardizationStDev_CACHE
     else:
         return inputs, standardizationMean_CACHE, standardizationStDev_CACHE
+
+
+
+# Initialize weights based on selected weight function. Weight
+# initialization is important, since a poor set of initialized
+# weights can lead to problems such as vanishing gradients
+# (gradients get smaller) or exploding gradients (gradients get
+# huge). There are several methods for weight initialization,
+# the most simple being randomly sampling from a uniform or normal
+# distribution, but more advanced methods such as Xavier or He
+# initialization exist, which sample from a distribution based on
+# the number of input and output nodes, which stabilizes the variance
+# of the distribution no matter how many inputs and outputs there are.
+def _weight_initialization(currLayerNodesNum, prevLayerNodesNum, inputNodes, outputNodes, weightInitFunc):
+    weight = np.empty((currLayerNodesNum, prevLayerNodesNum)) # curr * prev so that matmul works out such that output has same number of rows as nodes in current hidden layer
+
+    match weightInitFunc:
+        case WeightInitFunc.RANDOM_UNIFORM:
+            weight = weight_and_bias_rng.uniform(-1, 1, weight.shape)
+
+        case WeightInitFunc.RANDOM_NORMAL:
+            weight = weight_and_bias_rng.standard_normal(weight.shape)
+
+        case WeightInitFunc.XAVIER_UNIFORM:
+            distributionBound = (6 / (inputNodes + outputNodes)) ** 0.5
+            weight = weight_and_bias_rng.uniform(-distributionBound, distributionBound, weight.shape)
+
+        case WeightInitFunc.XAVIER_NORMAL:
+            stDev = (2 / (inputNodes + outputNodes)) ** 0.5
+            weight = weight_and_bias_rng.normal(0, stDev, weight.shape)
+
+        case WeightInitFunc.HE_UNIFORM:
+            distributionLowerBound = -(6 / inputNodes) ** 0.5
+            distributionUpperBound = (6 / outputNodes) ** 0.5
+            weight = weight_and_bias_rng.uniform(distributionLowerBound, distributionUpperBound, weight.shape)
+
+        case WeightInitFunc.HE_NORMAL:
+            stDev = (2 / inputNodes) ** 0.5
+            weight = weight_and_bias_rng.normal(0, stDev, weight.shape)
+
+        case _: raise ValueError("Invalid weight initialization function")
+
+    return weight
+
+# Initialize biases by randomly sampling from standard
+# normal distribution.
+def _bias_initialization(currLayerNodesNum):
+    bias = weight_and_bias_rng.standard_normal((currLayerNodesNum, 1))
+
+    return bias
 
 
 

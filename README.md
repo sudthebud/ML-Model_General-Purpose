@@ -54,7 +54,6 @@ prediction = model.predict(
 ```
 
 ## Things to Add / Experiment With
-- Change weight and bias initialization
 - Adding a learning rate scheduler
 - Residual network and ResNet
 - Batch normalization
@@ -77,3 +76,7 @@ prediction = model.predict(
   - [What is Shuffling the Data? A Guide for Students](https://medium.com/@sanjay_dutta/what-is-shuffling-the-data-a-guide-for-students-0f874572baf6) by _Sanjay Dutta_
   - [Why should the data be shuffled for machine learning tasks](https://datascience.stackexchange.com/questions/24511/why-should-the-data-be-shuffled-for-machine-learning-tasks) on StackExchange
   - [Feature Engineering: Scaling, Normalization and Standardization](https://www.geeksforgeeks.org/machine-learning/Feature-Engineering-Scaling-Normalization-and-Standardization/) on GeeksforGeeks
+- Weight initialization
+  - [Weight Initialization Techniques for Deep Neural Networks](https://www.geeksforgeeks.org/machine-learning/weight-initialization-techniques-for-deep-neural-networks/) on GeeksforGeeks
+  - [Xavier initialization](https://www.geeksforgeeks.org/deep-learning/xavier-initialization/) on GeeksforGeeks
+  - [Kaiming Initialization in Deep Learning](https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/) on GeeksforGeeks

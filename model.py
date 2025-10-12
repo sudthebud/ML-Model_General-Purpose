@@ -16,21 +16,26 @@ class Model:
                  numInputNodes: int, 
                  numHiddenLayerNodes: list[int], 
                  numOutputNodes: int, 
-                 activationFunc: int | list[int] = model_setup.ActivationFunc.SIGMOID,
                  normalize: bool = False,
-                 standardize: bool = False):
+                 standardize: bool = False,
+                 activationFunc: int | list[int] = model_setup.ActivationFunc.SIGMOID,
+                 weightInitFunc: int | list[int] = model_setup.WeightInitFunc.RANDOM_UNIFORM):
         
         self.__numInputNodes = numInputNodes
         self.__numHiddenLayerNodes = numHiddenLayerNodes
         self.__numOutputNodes = numOutputNodes
 
-        if isinstance(activationFunc, list) and len(activationFunc) != len(numHiddenLayerNodes) + 1:
-            raise ValueError("activationFunc list length must be same as the number of layers (except for the input layer)")
-        else: self.__activationFunc = activationFunc
+        if isinstance(weightInitFunc, list) and len(weightInitFunc) != len(numHiddenLayerNodes) + 1:
+            raise ValueError("weightInitFunc list length must be the same as the number of layers (except for the input layer)")
+        else: self.__weightInitFunc = weightInitFunc
 
         if normalize and standardize: raise ValueError("Cannot normalize and standardize data at the same time")
         self.__normalize = normalize
         self.__standardize = standardize
+
+        if isinstance(activationFunc, list) and len(activationFunc) != len(numHiddenLayerNodes) + 1:
+            raise ValueError("activationFunc list length must be the same as the number of layers (except for the input layer)")
+        else: self.__activationFunc = activationFunc
 
 
         self.__setup()
@@ -53,8 +58,8 @@ class Model:
             currLayerNodesNum = self.__numHiddenLayerNodes[i] if i < len(self.__numHiddenLayerNodes) else self.__numOutputNodes
             
             # Creates weight and bias matrices, with weight being curr * prev and bias being curr * 1
-            weight = np.random.randn(currLayerNodesNum, prevLayerNodesNum) # curr * prev so that matmul works out such that output has same number of rows as nodes in current hidden layer
-            bias = np.random.randn(currLayerNodesNum, 1)
+            weight = model_setup._weight_initialization(currLayerNodesNum, prevLayerNodesNum, self.__numInputNodes, self.__numOutputNodes, self.__weightInitFunc[i] if isinstance(self.__weightInitFunc, list) else self.__weightInitFunc)
+            bias = model_setup._bias_initialization(currLayerNodesNum)
             
             self.__weights.append(weight)
             self.__biases.append(bias)
@@ -201,7 +206,7 @@ class Model:
             raise ValueError("Number of epochs must be greater than 0")
         
         # Shuffle training data
-        # inputs, expectedOut = model_setup.shuffle_dataset(inputs, expectedOut)
+        inputs, expectedOut = model_setup.shuffle_dataset(inputs, expectedOut)
 
         # Normalize training data
         if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
