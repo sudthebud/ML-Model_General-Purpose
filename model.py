@@ -12,13 +12,26 @@ import model_setup
 #############
 class Model:
 
-    def __init__(self, numInputNodes: int, numHiddenLayerNodes: list[int], numOutputNodes: int, activationFunc: int | list[int] = model_setup.ActivationFunc.SIGMOID):
+    def __init__(self, 
+                 numInputNodes: int, 
+                 numHiddenLayerNodes: list[int], 
+                 numOutputNodes: int, 
+                 activationFunc: int | list[int] = model_setup.ActivationFunc.SIGMOID,
+                 normalize: bool = False,
+                 standardize: bool = False):
+        
         self.__numInputNodes = numInputNodes
         self.__numHiddenLayerNodes = numHiddenLayerNodes
         self.__numOutputNodes = numOutputNodes
+
         if isinstance(activationFunc, list) and len(activationFunc) != len(numHiddenLayerNodes) + 1:
             raise ValueError("activationFunc list length must be same as the number of layers (except for the input layer)")
         else: self.__activationFunc = activationFunc
+
+        if normalize and standardize: raise ValueError("Cannot normalize and standardize data at the same time")
+        self.__normalize = normalize
+        self.__standardize = standardize
+
 
         self.__setup()
 
@@ -28,6 +41,8 @@ class Model:
     # an accurate output. Biases are added to the output of each layer
     # to shift the activation function linearly, and also prevent the 
     # nodes of a neural network from zeroing out.
+    # 
+    # Additionally, set up other variables for the machine learning model.
     def __setup(self):
         self.__weights = []
         self.__biases = []
@@ -42,6 +57,9 @@ class Model:
             
             self.__weights.append(weight)
             self.__biases.append(bias)
+
+        self.__normalizationMin_CACHE = None
+        self.__normalizationMax__CACHE = None
 
 
     # Run the data through the layers of the neural network,
@@ -179,6 +197,9 @@ class Model:
         # Shuffle training data
         inputs, expectedOut = model_setup.shuffle_dataset(inputs, expectedOut)
 
+        # Normalize training data (only applicable on first method call)
+        if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax__CACHE = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax__CACHE)
+
         
         costs = []
 
@@ -218,6 +239,10 @@ class Model:
 
         if inputs.shape[0] != self.__numInputNodes:
             raise ValueError("Number of input features must match value set for numInputNodes")
+        
+        # Normalize prediction input
+        if self.__normalize: inputs, _, _ = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax__CACHE)
+
         
         # Run the feed forward algorithm and return the output layer
         layers = self.__feed_forward(inputs)

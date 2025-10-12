@@ -33,7 +33,8 @@ model = Model(
     numInputNodes = 3,
     numHiddenLayerNodes = [7, 7, 7],
     numOutputNodes = 1,
-    activationFunc = [ActivationFunc.SIGMOID, ActivationFunc.SIGMOID, ActivationFunc.RELU]
+    activationFunc = [ActivationFunc.SIGMOID, ActivationFunc.SIGMOID, ActivationFunc.RELU],
+    normalize = True
 )
 
 
@@ -55,12 +56,15 @@ prediction = model.predict(
 ## Things to Add / Experiment With
 - Change weight and bias initialization
 - Adding a learning rate scheduler
-- Data normalization
+- Data standardization
 - Residual network and ResNet
 - Batch normalization
 - Neural network regularization
 - Handle multi dimensional inputs
 - Split train and test dataset, then train and predict in one go
+- Data, weight, and gradient clipping
+- Implement model metrics
+- Apply other normalization techniques
 
 # Resources
 - Basic neural network concepts and math
@@ -72,3 +76,4 @@ prediction = model.predict(
 - Data handling
   - [What is Shuffling the Data? A Guide for Students](https://medium.com/@sanjay_dutta/what-is-shuffling-the-data-a-guide-for-students-0f874572baf6) by _Sanjay Dutta_
   - [Why should the data be shuffled for machine learning tasks](https://datascience.stackexchange.com/questions/24511/why-should-the-data-be-shuffled-for-machine-learning-tasks) on StackExchange
+  - [Feature Engineering: Scaling, Normalization and Standardization](https://www.geeksforgeeks.org/machine-learning/Feature-Engineering-Scaling-Normalization-and-Standardization/) on GeeksforGeeks

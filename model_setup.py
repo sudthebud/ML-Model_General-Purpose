@@ -44,6 +44,28 @@ def shuffle_dataset(inputs, outputs):
 
     return inputs, outputs
 
+# Normalize training data, and save the input metrics for normalization
+# (e.g. min, max) to be cached for when we have to normalize prediction
+# inputs by the same metrics. This method will only set the normalization
+# metrics when the first set of training data is given to the model (a
+# large batch of >1 samples of training data).
+# 
+# Currently, the method implemented is min-max normalization.
+def _normalization(inputs, normalizationMin_CACHE, normalizationMax_CACHE):
+    if normalizationMin_CACHE is None and normalizationMax_CACHE is None and inputs.shape[1] > 1:
+        normalizationMin_CACHE = np.min(inputs, axis=1)[:, np.newaxis]
+        normalizationMax_CACHE = np.max(inputs, axis=1)[:, np.newaxis]
+
+    if normalizationMin_CACHE is not None and normalizationMin_CACHE is not None:
+        normalizedInputs = (inputs - normalizationMin_CACHE) / (normalizationMax_CACHE - normalizationMin_CACHE)
+
+        return normalizedInputs, normalizationMin_CACHE, normalizationMax_CACHE
+    else:
+        return inputs, normalizationMin_CACHE, normalizationMax_CACHE
+
+# def _standardization(inputs):
+
+
 
 
 # Nonlinear activation function that converts neuron outputs.
@@ -153,11 +175,3 @@ def _cost_derivative(predicted, actual, costFunc):
 
     costDerived = allResults
     return costDerived
-
-
-
-# def classification_metrics(predicted, actual):
-    
-
-# def linear_regression_metrics(predicted, actual):
-    
