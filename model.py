@@ -19,7 +19,8 @@ class Model:
                  normalize: bool = False,
                  standardize: bool = False,
                  activationFunc: int | list[int] = model_setup.ActivationFunc.SIGMOID,
-                 weightInitFunc: int | list[int] = model_setup.WeightInitFunc.RANDOM_UNIFORM):
+                 weightInitFunc: int | list[int] = model_setup.WeightInitFunc.RANDOM_UNIFORM,
+                 biasInitFunc: int | list[int] = model_setup.BiasInitFunc.ZERO):
         
         self.__numInputNodes = numInputNodes
         self.__numHiddenLayerNodes = numHiddenLayerNodes
@@ -28,6 +29,9 @@ class Model:
         if isinstance(weightInitFunc, list) and len(weightInitFunc) != len(numHiddenLayerNodes) + 1:
             raise ValueError("weightInitFunc list length must be the same as the number of layers (except for the input layer)")
         else: self.__weightInitFunc = weightInitFunc
+        if isinstance(biasInitFunc, list) and len(biasInitFunc) != len(numHiddenLayerNodes) + 1:
+            raise ValueError("biasInitFunc list length must be the same as the number of layers (except for the input layer)")
+        else: self.__biasInitFunc = biasInitFunc
 
         if normalize and standardize: raise ValueError("Cannot normalize and standardize data at the same time")
         self.__normalize = normalize
@@ -59,7 +63,7 @@ class Model:
             
             # Creates weight and bias matrices, with weight being curr * prev and bias being curr * 1
             weight = model_setup._weight_initialization(currLayerNodesNum, prevLayerNodesNum, self.__numInputNodes, self.__numOutputNodes, self.__weightInitFunc[i] if isinstance(self.__weightInitFunc, list) else self.__weightInitFunc)
-            bias = model_setup._bias_initialization(currLayerNodesNum)
+            bias = model_setup._bias_initialization(currLayerNodesNum, self.__biasInitFunc[i] if isinstance(self.__biasInitFunc, list) else self.__biasInitFunc)
             
             self.__weights.append(weight)
             self.__biases.append(bias)

@@ -72,6 +72,7 @@ prediction = model.predict(
   - [Undestanding Cost Functions in Machine Learning: Types and Applications](https://medium.com/@anishnama20/understanding-cost-functions-in-machine-learning-types-and-applications-cd7d8cc4b47d) by _Anishnama_
   - [Backpropagation, intuitively | Deep Learning Chapter 3](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by _3Blue1Brown_
   - [Backpropagation calculus | Deep Learning Chapter 4](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by _3Blue1Brown_
+  - [CS231n Deep Learning for Computer Vision](https://cs231n.github.io/neural-networks-2/) from Stanford University
 - Data handling
   - [What is Shuffling the Data? A Guide for Students](https://medium.com/@sanjay_dutta/what-is-shuffling-the-data-a-guide-for-students-0f874572baf6) by _Sanjay Dutta_
   - [Why should the data be shuffled for machine learning tasks](https://datascience.stackexchange.com/questions/24511/why-should-the-data-be-shuffled-for-machine-learning-tasks) on StackExchange

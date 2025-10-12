@@ -9,7 +9,7 @@ import numpy as np
 ####################
 # CONSTS AND ENUMS #
 ####################
-weight_and_bias_rng = np.random.default_rng()
+_weight_and_bias_rng = np.random.default_rng()
 class WeightInitFunc(Enum):
     RANDOM_UNIFORM = 0
     RANDOM_NORMAL = 1
@@ -17,6 +17,11 @@ class WeightInitFunc(Enum):
     XAVIER_NORMAL = 3
     HE_UNIFORM = 4
     HE_NORMAL = 5
+_bias_small_Alpha_init = 0.01
+class BiasInitFunc(Enum):
+    ZERO = 0
+    SMALL_ALPHA = 1
+    RANDOM_NORMAL= 2
 
 _leakyReLU_Alpha = 0.01
 class ActivationFunc(Enum):
@@ -114,36 +119,50 @@ def _weight_initialization(currLayerNodesNum, prevLayerNodesNum, inputNodes, out
 
     match weightInitFunc:
         case WeightInitFunc.RANDOM_UNIFORM:
-            weight = weight_and_bias_rng.uniform(-1, 1, weight.shape)
+            weight = _weight_and_bias_rng.uniform(-1, 1, weight.shape)
 
         case WeightInitFunc.RANDOM_NORMAL:
-            weight = weight_and_bias_rng.standard_normal(weight.shape)
+            weight = _weight_and_bias_rng.standard_normal(weight.shape)
 
         case WeightInitFunc.XAVIER_UNIFORM:
             distributionBound = (6 / (inputNodes + outputNodes)) ** 0.5
-            weight = weight_and_bias_rng.uniform(-distributionBound, distributionBound, weight.shape)
+            weight = _weight_and_bias_rng.uniform(-distributionBound, distributionBound, weight.shape)
 
         case WeightInitFunc.XAVIER_NORMAL:
             stDev = (2 / (inputNodes + outputNodes)) ** 0.5
-            weight = weight_and_bias_rng.normal(0, stDev, weight.shape)
+            weight = _weight_and_bias_rng.normal(0, stDev, weight.shape)
 
         case WeightInitFunc.HE_UNIFORM:
             distributionLowerBound = -(6 / inputNodes) ** 0.5
             distributionUpperBound = (6 / outputNodes) ** 0.5
-            weight = weight_and_bias_rng.uniform(distributionLowerBound, distributionUpperBound, weight.shape)
+            weight = _weight_and_bias_rng.uniform(distributionLowerBound, distributionUpperBound, weight.shape)
 
         case WeightInitFunc.HE_NORMAL:
             stDev = (2 / inputNodes) ** 0.5
-            weight = weight_and_bias_rng.normal(0, stDev, weight.shape)
+            weight = _weight_and_bias_rng.normal(0, stDev, weight.shape)
 
         case _: raise ValueError("Invalid weight initialization function")
 
     return weight
 
-# Initialize biases by randomly sampling from standard
-# normal distribution.
-def _bias_initialization(currLayerNodesNum):
-    bias = weight_and_bias_rng.standard_normal((currLayerNodesNum, 1))
+# Initialize biases based on the selected bias function. Most
+# times, the bias is initialized at zero since it matters less
+# to the matrix calculations than weights, which can zero out
+# the calculations if they are set to zero, but sometimes the
+# bias can be set to a small value for instances like ReLU
+# activation functions.
+def _bias_initialization(currLayerNodesNum, biasInitFunc):
+    bias = np.empty((currLayerNodesNum, 1))
+
+    match biasInitFunc:
+        case BiasInitFunc.ZERO:
+            bias.fill(0)
+
+        case BiasInitFunc.SMALL_ALPHA:
+            bias.fill(_bias_small_Alpha_init)
+        
+        case BiasInitFunc.RANDOM_NORMAL:
+            bias = _weight_and_bias_rng.standard_normal(bias.shape)
 
     return bias
 
