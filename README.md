@@ -18,7 +18,7 @@ Also used to learn how to turn a Python project into a package.
 
 ```python
 # Imports
-from ML_Model_General_Purpose_SudTheBud import ActivationFunc, CostFunc, WeightInitFunc, BiasInitFunc, shuffle_dataset, Model
+from ML_Model_General_Purpose_SudTheBud import WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, shuffle_dataset, Model
 
 
 # Data
@@ -57,7 +57,6 @@ prediction = model.predict(
 ```
 
 ## Things to Add / Experiment With
-- Adding a learning rate scheduler
 - Residual network and ResNet
 - Batch normalization
 - Neural network regularization
@@ -80,9 +79,11 @@ prediction = model.predict(
   - [What is Shuffling the Data? A Guide for Students](https://medium.com/@sanjay_dutta/what-is-shuffling-the-data-a-guide-for-students-0f874572baf6) by _Sanjay Dutta_
   - [Why should the data be shuffled for machine learning tasks](https://datascience.stackexchange.com/questions/24511/why-should-the-data-be-shuffled-for-machine-learning-tasks) on StackExchange
   - [Feature Engineering: Scaling, Normalization and Standardization](https://www.geeksforgeeks.org/machine-learning/Feature-Engineering-Scaling-Normalization-and-Standardization/) on GeeksforGeeks
-- Weight initialization
+- Initialization
   - [Weight Initialization Techniques for Deep Neural Networks](https://www.geeksforgeeks.org/machine-learning/weight-initialization-techniques-for-deep-neural-networks/) on GeeksforGeeks
   - [Xavier initialization](https://www.geeksforgeeks.org/deep-learning/xavier-initialization/) on GeeksforGeeks
   - [Kaiming Initialization in Deep Learning](https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/) on GeeksforGeeks
+- Training
+  - [A (Very Short) Visual Introduction to Learning Rate Schedulers (With Code)](https://medium.com/@theom/a-very-short-visual-introduction-to-learning-rate-schedulers-with-code-189eddffdb00) by _Théo Martin_
 - Other
   - [Packaging Python Project](https://packaging.python.org/en/latest/tutorials/packaging-projects) on Python Packaging User Guide

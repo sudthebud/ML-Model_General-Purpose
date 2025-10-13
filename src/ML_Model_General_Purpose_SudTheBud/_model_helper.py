@@ -1,6 +1,7 @@
 ###########
 # IMPORTS #
 ###########
+import math
 from enum import Enum
 
 import numpy as np
@@ -38,6 +39,12 @@ class CostFunc(Enum):
     # CATEGORICAL_CROSS_ENTROPY = 4
     # HINGE_LOSS = 5
     # KL_DIVERGENCE = 6
+
+class LearningRateSchedulerFunc(Enum):
+    CONSTANT = 0,
+    STEP_DECAY = 1,
+    EXPONENTIAL_DECAY = 2,
+    COSINE_ANNEALING = 3
 
 
 
@@ -155,14 +162,11 @@ def _bias_initialization(currLayerNodesNum, biasInitFunc):
     bias = np.empty((currLayerNodesNum, 1))
 
     match biasInitFunc:
-        case BiasInitFunc.ZERO:
-            bias.fill(0)
+        case BiasInitFunc.ZERO: bias.fill(0)
+        case BiasInitFunc.SMALL_ALPHA: bias.fill(_bias_small_Alpha_init)
+        case BiasInitFunc.RANDOM_NORMAL: bias = _weight_and_bias_rng.standard_normal(bias.shape)
 
-        case BiasInitFunc.SMALL_ALPHA:
-            bias.fill(_bias_small_Alpha_init)
-        
-        case BiasInitFunc.RANDOM_NORMAL:
-            bias = _weight_and_bias_rng.standard_normal(bias.shape)
+        case _: raise ValueError("Invalid bias initialization function")
 
     return bias
 
@@ -275,3 +279,35 @@ def _cost_derivative(predicted, actual, costFunc):
 
     costDerived = allResults
     return costDerived
+
+
+# Update the learning rate according to a "scheduling" function,
+# meaning we update the learning rate to a lower value as we move
+# through a number of epochs in training. In the beginning of
+# our training process, we want a high learning rate so that our
+# parameters make large movements toward being tuned to provide
+# the minimum of the cost function (and thus being as accurate
+# as possible). However, as we keep running the training process,
+# we will inevitably get our model closer to the minimum of the
+# cost function, and that's when we want the learning rate to be
+# small so we don't make big changes to our parameters and overshoot
+# the minimum. A learning rate scheduler helps reduce the learning
+# rate over time so that we can make big changes at the beginning
+# of training and small changes at the end.
+def _learning_rate_scheduler(epoch, 
+                             maxEpochs, 
+                             learningRateMax, 
+                             learningRateFunc, 
+                             learningRateMin = 0.01, 
+                             learningRateStepSize = 10, 
+                             learningRateDecayFactor = 0.05):
+    
+    match learningRateFunc:
+        case LearningRateSchedulerFunc.CONSTANT: learningRate = learningRateMax
+        case LearningRateSchedulerFunc.STEP_DECAY: learningRate = learningRateMax * (learningRateDecayFactor ** math.floor((1 + epoch) / learningRateStepSize))
+        case LearningRateSchedulerFunc.EXPONENTIAL_DECAY: learningRate = learningRateMax * (math.e ** (-learningRateDecayFactor * epoch))
+        case LearningRateSchedulerFunc.COSINE_ANNEALING: learningRate = learningRateMin + 0.5 * (learningRateMax - learningRateMin) * (1 + math.cos(epoch / maxEpochs * math.pi))
+
+        case _: raise ValueError("Invalid learning rate scheduler function")
+
+    return learningRate
