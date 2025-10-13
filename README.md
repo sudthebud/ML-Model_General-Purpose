@@ -1,6 +1,6 @@
 # General Purpose ML Model
 
-A general purpose machine learning model package written in Python, developed as a learning project to refresh my brain on machine learning and neural network principles. This project was aided by a learning resource by Aadil Mallick along with other resources (linked in credits), but the code was written by myself and with as much of an understanding as possible of the concepts behind what I was coding and how it played into the neural network process (as evidenced by the lengthy comments in the code). Basically, I tried to understand how neural networks worked and the math behind them, and wrote the code from there, rather than copying code or instructions blindly.
+A general purpose machine learning model (specifically a neural network) module written in Python, developed as a learning project to refresh my brain on machine learning and neural network principles. This project was aided by a learning resource by Aadil Mallick along with other resources (linked in resources), but the code was written by myself and with as much of an understanding as possible of the concepts behind what I was coding and how it played into the neural network process (as evidenced by the lengthy comments in the code). Basically, I tried to understand how neural networks worked and the math behind them, and wrote the code from there, rather than copying code or instructions blindly.
 
 This model is configurable, allowing a user who imports these Python scripts to use any number of layers, as well as choosing the number of nodes for every single layer, the activation function for every layer, the cost function, and the learning rate.
 
@@ -10,7 +10,7 @@ Also used to learn how to turn a Python project into a package.
 - Clone this repository into your computer
 - In your terminal, change the working directory to your clone of this repository
 - Run ```py -m build```
-- Activate the virtual environment of the project that will use this package
+- Activate the virtual environment of the project that will use this module
 - Run ```pip install [path\to\whl\file\in\dir]``` with the **.whl** file that gets created in the ```dir``` folder of this repository
 - Import the module
 
