@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ML_Model_General_Purpose_SudTheBud"
+version = "1.0.0"
+authors = [
+    { name = "Sudharshan Srinivasan" }
+]
+dependencies = [
+    "numpy"
+]
+description = "General purpose, configurable machine learning model package developed for learning purposes."
+readme = "README.md"
+
+[project.urls]
+Homepage = "https://github.com/sudthebud/ML-Model_General-Purpose"

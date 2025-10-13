@@ -3,7 +3,7 @@
 ###########
 import numpy as np
 
-import model_setup
+from . import _model_setup
 
 
 
@@ -18,9 +18,9 @@ class Model:
                  numOutputNodes: int, 
                  normalize: bool = False,
                  standardize: bool = False,
-                 activationFunc: int | list[int] = model_setup.ActivationFunc.SIGMOID,
-                 weightInitFunc: int | list[int] = model_setup.WeightInitFunc.RANDOM_UNIFORM,
-                 biasInitFunc: int | list[int] = model_setup.BiasInitFunc.ZERO):
+                 activationFunc: int | list[int] = _model_setup.ActivationFunc.SIGMOID,
+                 weightInitFunc: int | list[int] = _model_setup.WeightInitFunc.RANDOM_UNIFORM,
+                 biasInitFunc: int | list[int] = _model_setup.BiasInitFunc.ZERO):
         
         self.__numInputNodes = numInputNodes
         self.__numHiddenLayerNodes = numHiddenLayerNodes
@@ -62,8 +62,8 @@ class Model:
             currLayerNodesNum = self.__numHiddenLayerNodes[i] if i < len(self.__numHiddenLayerNodes) else self.__numOutputNodes
             
             # Creates weight and bias matrices, with weight being curr * prev and bias being curr * 1
-            weight = model_setup._weight_initialization(currLayerNodesNum, prevLayerNodesNum, self.__numInputNodes, self.__numOutputNodes, self.__weightInitFunc[i] if isinstance(self.__weightInitFunc, list) else self.__weightInitFunc)
-            bias = model_setup._bias_initialization(currLayerNodesNum, self.__biasInitFunc[i] if isinstance(self.__biasInitFunc, list) else self.__biasInitFunc)
+            weight = _model_setup._weight_initialization(currLayerNodesNum, prevLayerNodesNum, self.__numInputNodes, self.__numOutputNodes, self.__weightInitFunc[i] if isinstance(self.__weightInitFunc, list) else self.__weightInitFunc)
+            bias = _model_setup._bias_initialization(currLayerNodesNum, self.__biasInitFunc[i] if isinstance(self.__biasInitFunc, list) else self.__biasInitFunc)
             
             self.__weights.append(weight)
             self.__biases.append(bias)
@@ -108,7 +108,7 @@ class Model:
 
             # Apply the activation function to all nodes in the 
             # current layer.
-            currLayer = model_setup._activation(currLayer, self.__activationFunc[i] if isinstance(self.__activationFunc, list) else self.__activationFunc)
+            currLayer = _model_setup._activation(currLayer, self.__activationFunc[i] if isinstance(self.__activationFunc, list) else self.__activationFunc)
 
             layers.append(currLayer)
 
@@ -130,13 +130,13 @@ class Model:
         # Derivative of cost function with respect to final
         # layer output result (which is the result of the
         # activation function).
-        dC_dA = model_setup._cost_derivative(layers[-1], expectedOut, costFunc)
+        dC_dA = _model_setup._cost_derivative(layers[-1], expectedOut, costFunc)
         chainedDerivatives = dC_dA
         
         for i in range(len(layers)-1, 0, -1): # For each layer in the neural network besides the input layer (going backwards)...
 
             # Compute derivative of activation function with respect to neuron output
-            dA_dZ = model_setup._activation_derivative(layers[i], self.__activationFunc)
+            dA_dZ = _model_setup._activation_derivative(layers[i], self.__activationFunc)
             chainedDerivatives = chainedDerivatives * dA_dZ
 
             # Compute derivative of neuron output with respect to weights
@@ -186,7 +186,7 @@ class Model:
     # the feed forward output layer result as incorrect as it is (using a
     # cost function that we define) and update the weights and biases
     # accordingly, by a factor of the learning rate.
-    def train(self, inputs: np.array, expectedOut: np.array, epochs: int = 1000, costFunc: int = model_setup.CostFunc.BINARY_CROSS_ENTROPY, learningRate: float = 0.1):
+    def train(self, inputs: np.array, expectedOut: np.array, epochs: int = 1000, costFunc: int = _model_setup.CostFunc.BINARY_CROSS_ENTROPY, learningRate: float = 0.1):
         if len(inputs.shape) != 2:
             if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
             else: raise ValueError("Dimensions of input must be 2D")
@@ -210,12 +210,12 @@ class Model:
             raise ValueError("Number of epochs must be greater than 0")
         
         # Shuffle training data
-        inputs, expectedOut = model_setup.shuffle_dataset(inputs, expectedOut)
+        inputs, expectedOut = _model_setup.shuffle_dataset(inputs, expectedOut)
 
         # Normalize training data
-        if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
+        if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE = _model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
         # Standardize training data
-        elif self.__standardize: inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE = model_setup._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
+        elif self.__standardize: inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE = _model_setup._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
 
         
         costs = []
@@ -229,7 +229,7 @@ class Model:
             # Not used in feed forward or back propagation, but to determine accuracy
             # of the model per epoch and adjust number of epochs accordingly (don't need
             # to run 1000 epochs if the model reaches a good accuracy at 50 epochs)
-            cost = model_setup._cost(layers[-1], expectedOut, costFunc)
+            cost = _model_setup._cost(layers[-1], expectedOut, costFunc)
             costs.append(cost)
 
             # Run the back propagation process to update the weights and biases
@@ -258,9 +258,9 @@ class Model:
             raise ValueError("Number of input features must match value set for numInputNodes")
         
         # Normalize prediction input
-        if self.__normalize: inputs, _, _ = model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
+        if self.__normalize: inputs, _, _ = _model_setup._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
         # Standardize prediction input
-        elif self.__standardize: inputs, _, _ = model_setup._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
+        elif self.__standardize: inputs, _, _ = _model_setup._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
 
         
         # Run the feed forward algorithm and return the output layer
