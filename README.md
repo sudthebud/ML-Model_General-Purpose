@@ -70,8 +70,6 @@ prediction = model.predict(
 # Resources
 - Basic neural network concepts and math
   - [Learn to Build a Neural Network from Scratch](https://medium.com/@waadlingaadil/learn-to-build-a-neural-network-from-scratch-yes-really-cac4ca457efc#:~:text=1) by _Aadil Mallick_
-  - [The Importance and Reasoning behind Activation Functions](https://towardsdatascience.com/the-importance-and-reasoning-behind-activation-functions-4dc00e74db41/) by _Zach Brodtman_
-  - [Undestanding Cost Functions in Machine Learning: Types and Applications](https://medium.com/@anishnama20/understanding-cost-functions-in-machine-learning-types-and-applications-cd7d8cc4b47d) by _Anishnama_
   - [Backpropagation, intuitively | Deep Learning Chapter 3](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by _3Blue1Brown_
   - [Backpropagation calculus | Deep Learning Chapter 4](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by _3Blue1Brown_
   - [CS231n Deep Learning for Computer Vision](https://cs231n.github.io/neural-networks-2/) from Stanford University
@@ -83,6 +81,14 @@ prediction = model.predict(
   - [Weight Initialization Techniques for Deep Neural Networks](https://www.geeksforgeeks.org/machine-learning/weight-initialization-techniques-for-deep-neural-networks/) on GeeksforGeeks
   - [Xavier initialization](https://www.geeksforgeeks.org/deep-learning/xavier-initialization/) on GeeksforGeeks
   - [Kaiming Initialization in Deep Learning](https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/) on GeeksforGeeks
+- Activation
+  - [The Importance and Reasoning behind Activation Functions](https://towardsdatascience.com/the-importance-and-reasoning-behind-activation-functions-4dc00e74db41/) by _Zach Brodtman_
+  - [Neural networks: Multi-class classification](https://developers.google.com/machine-learning/crash-course/neural-networks/multi-class) on Google Developers
+  - [Derivative of the Softmax Function and the Categorical Cross-Entropy Loss](https://medium.com/data-science/derivative-of-the-softmax-function-and-the-categorical-cross-entropy-loss-ffceefc081d1) by _Thomas Kurbiel_
+  - [how can i take the derivative of the softmax output in back-prop](https://stackoverflow.com/questions/57631507/how-can-i-take-the-derivative-of-the-softmax-output-in-back-prop) on StackOverflow
+  - [Softmax and Backpropagation](https://medium.com/@jsilvawasd/softmax-and-backpropagation-625c0c1f8241) by _Jsilvawasd_
+- Cost
+  - [Undestanding Cost Functions in Machine Learning: Types and Applications](https://medium.com/@anishnama20/understanding-cost-functions-in-machine-learning-types-and-applications-cd7d8cc4b47d) by _Anishnama_
 - Training
   - [A (Very Short) Visual Introduction to Learning Rate Schedulers (With Code)](https://medium.com/@theom/a-very-short-visual-introduction-to-learning-rate-schedulers-with-code-189eddffdb00) by _Théo Martin_
 - Other

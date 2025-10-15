@@ -30,13 +30,14 @@ class ActivationFunc(Enum):
     TANH = 1
     RELU = 2
     LEAKY_RELU = 3
+    SOFTMAX = 4
 
 class CostFunc(Enum):
     MEAN_SQ_ERROR = 0
     # RT_MEAN_SQ_ERROR = 1
     MEAN_ABS_ERROR = 2
     BINARY_CROSS_ENTROPY = 3
-    # CATEGORICAL_CROSS_ENTROPY = 4
+    CATEGORICAL_CROSS_ENTROPY = 4
     # HINGE_LOSS = 5
     # KL_DIVERGENCE = 6
 
@@ -56,7 +57,7 @@ class LearningRateSchedulerFunc(Enum):
 # data is useful so that the model does not learn to recognize patterns
 # in the data order or the model can "bounce out" of a local minimum
 # of the cost function during training.
-def shuffle_dataset(inputs, outputs):
+def shuffle_dataset(inputs: np.array, outputs: np.array) -> tuple[np.array, np.array]:
     rng = np.random.default_rng()
     permutationIndices = rng.permutation(inputs.shape[1])
 
@@ -80,7 +81,8 @@ def _normalization(inputs, normalizationMin_CACHE, normalizationMax_CACHE):
         normalizationMax_CACHE = np.max(inputs, axis=1)[:, np.newaxis]
 
     if normalizationMin_CACHE is not None and normalizationMin_CACHE is not None:
-        normalizedInputs = (inputs - normalizationMin_CACHE) / (normalizationMax_CACHE - normalizationMin_CACHE)
+        with np.errstate(divide='ignore', invalid='ignore'): 
+            normalizedInputs = np.where(normalizationMax_CACHE - normalizationMin_CACHE != 0, (inputs - normalizationMin_CACHE) / (normalizationMax_CACHE - normalizationMin_CACHE), 0)
 
         return normalizedInputs, normalizationMin_CACHE, normalizationMax_CACHE
     else:
@@ -103,7 +105,8 @@ def _standardization(inputs, standardizationMean_CACHE, standardizationStDev_CAC
         standardizationStDev_CACHE = np.std(inputs, axis=1)[:, np.newaxis]
 
     if standardizationMean_CACHE is not None and standardizationStDev_CACHE is not None:
-        standardizedInputs = (inputs - standardizationMean_CACHE) / standardizationStDev_CACHE
+        with np.errstate(divide='ignore', invalid='ignore'): 
+            standardizedInputs = np.where(standardizationStDev_CACHE != 0, (inputs - standardizationMean_CACHE) / standardizationStDev_CACHE, 0)
 
         return standardizedInputs, standardizationMean_CACHE, standardizationStDev_CACHE
     else:
@@ -183,6 +186,7 @@ def _activation(matrix, activationFunc):
         case ActivationFunc.TANH: return (np.exp(matrix) - np.exp(-matrix)) / (np.exp(matrix) + np.exp(-matrix))
         case ActivationFunc.RELU: return np.where(matrix >= 0, matrix, 0)
         case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, matrix, -_leakyReLU_Alpha * matrix)
+        case ActivationFunc.SOFTMAX: return np.exp(matrix) / np.sum(np.exp(matrix), axis = 0)
 
         case _: raise ValueError("Invalid activation function")
 
@@ -193,7 +197,25 @@ def _activation_derivative(matrix, activationFunc):
         case ActivationFunc.SIGMOID: return matrix * (1 - matrix)
         case ActivationFunc.TANH: return 1 - matrix ** 2
         case ActivationFunc.RELU: return np.where(matrix >= 0, 1, 0)
-        case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, 1, -_leakyReLU_Alpha) 
+        case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, 1, -_leakyReLU_Alpha)
+
+        case ActivationFunc.SOFTMAX:
+            # Softmax is a little more complex, since we have to get the derivative
+            # of every activated node with respect to the unactivated node output
+            # (which is a_j(1-a_j) if a_i = a_j and a_i is the activated node in question,
+            # and a_i * a_j if a_i is any other activated node in the layer). Then, we
+            # need to multiply those values by the derivative of the cost with respect 
+            # to every activated node in the layer, respectively (done in the backprop 
+            # function in the Model class). Thus, we are required to make a n x m x m array,
+            # then sum those products for each node later.
+            matrixTiled = matrix.T[:, :, np.newaxis]
+            matrixTiled = np.tile(matrixTiled, [1, 1, matrixTiled.shape[1]])
+
+            matrixDot = -matrixTiled * matrix.T[:, np.newaxis, :]
+            matrixDot[:, np.diag_indices(matrixDot.shape[1])[0], np.diag_indices(matrixDot.shape[2])[1]] += matrix.T
+            matrixDot = matrixDot.T
+
+            return matrixDot
 
         case _: raise ValueError("Invalid activation function")
 
@@ -227,9 +249,11 @@ def _cost(predicted, actual, costFunc):
             result = -(actual * np.log(predicted) + (1-actual) * np.log(1-predicted))
             allResults = (1 / numTests) * np.sum(result, axis = 1)
 
-        # case CostFunc.CATEGORICAL_CROSS_ENTROPY:
-        #     result = -np.sum((actual * np.log(predicted)), axis = 0)
-        #     allResults = (1 / numTests) * np.sum(result)
+        case CostFunc.CATEGORICAL_CROSS_ENTROPY:
+            # 1 / n * sum(sum(y_a * log(y_p)))
+            result = -np.sum((actual * np.log(predicted)), axis = 0)
+            allResults = (1 / numTests) * np.sum(result)
+
         # case CostFunc.HINGE_LOSS:
         #     result = np.maximum(0, 1 - actual * predicted)
         #     allResults = np.mean(result, axis = 1)
@@ -240,7 +264,7 @@ def _cost(predicted, actual, costFunc):
 
         case _: raise ValueError("Invalid cost function")
 
-    cost = allResults if len(allResults.shape) == 1 else np.sum(allResults) # Flatten the result to a scalar value to make it easier to work with when comparing epochs
+    cost = allResults
     return cost
 
 # Derivative of the cost functions with respect to predicted
@@ -273,6 +297,11 @@ def _cost_derivative(predicted, actual, costFunc):
             # 1 / n * sum((1 - y_a) / (1 - y_p) - y_a / y_p)
             result = (1 - actual) / (1 - predicted) - actual / predicted
             allResults = 1 / numTests * result
+
+        case CostFunc.CATEGORICAL_CROSS_ENTROPY:
+            # y_a / y_p
+            result = -(actual / predicted)
+            allResults = result
 
 
         case _: raise ValueError("Invalid cost function")

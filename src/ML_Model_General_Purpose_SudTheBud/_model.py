@@ -136,8 +136,11 @@ class Model:
         for i in range(len(layers)-1, 0, -1): # For each layer in the neural network besides the input layer (going backwards)...
 
             # Compute derivative of activation function with respect to neuron output
-            dA_dZ = _model_helper._activation_derivative(layers[i], self.__activationFunc)
+            activationFunc = self.__activationFunc[i-1] if isinstance(self.__activationFunc, list) else self.__activationFunc
+            dA_dZ = _model_helper._activation_derivative(layers[i], activationFunc)
+            if activationFunc == _model_helper.ActivationFunc.SOFTMAX: chainedDerivatives = chainedDerivatives[:, np.newaxis, :]
             chainedDerivatives = chainedDerivatives * dA_dZ
+            if activationFunc == _model_helper.ActivationFunc.SOFTMAX: chainedDerivatives = np.sum(chainedDerivatives, axis = 0)
 
             # Compute derivative of neuron output with respect to weights
             # and use chain derivatives to compute derivative of cost with
@@ -195,7 +198,10 @@ class Model:
               learningRate: float = 0.1,
               learningRateMin: float = 0.01,
               learningRateStepSize: int = 10,
-              learningRateDecayFactor: float = 0.05):
+              learningRateDecayFactor: float = 0.05,
+              epochPrintInterval: int = 0) -> list[np.array]:
+        
+        if epochPrintInterval < 0: raise ValueError("epochPrintInterval must be 0 or above")
         
         if len(inputs.shape) != 2:
             if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
@@ -228,7 +234,7 @@ class Model:
         elif self.__standardize: inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE = _model_helper._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
 
         
-        costs = []
+        costs = np.empty((epochs, self.__numOutputNodes))
 
         for epoch in range(epochs): # For every iteration (epoch)...
 
@@ -240,7 +246,7 @@ class Model:
             # of the model per epoch and adjust number of epochs accordingly (don't need
             # to run 1000 epochs if the model reaches a good accuracy at 50 epochs)
             cost = _model_helper._cost(layers[-1], expectedOut, costFunc)
-            costs.append(cost)
+            costs[epoch] = cost
 
             # Determine the learning rate based on the learning rate scheduling function
             learningRateEpoch = _model_helper._learning_rate_scheduler(epoch, epochs - 1, learningRate, learningRateSchedulerFunc, learningRateMin, learningRateStepSize, learningRateDecayFactor)
@@ -249,6 +255,8 @@ class Model:
             # based on how much they affect the result of the cost function (and
             # thus the output's accuracy)
             self.__back_propagation(layers, expectedOut, costFunc, learningRateEpoch)
+
+            if epochPrintInterval > 0 and (epoch == 0 or (epoch + 1) % epochPrintInterval == 0): print(f"Epoch {epoch+1}: cost {cost if len(cost.shape) == 0 else (1/cost.shape[0] * np.sum(cost, axis = 1))}")
 
         return costs 
 
@@ -259,7 +267,7 @@ class Model:
     # reflecting the predicted quantitative values (for linear regression)
     # or likelihood of the result falling into one or more classes (for 
     # classification).
-    def predict(self, inputs: np.array):
+    def predict(self, inputs: np.array) -> np.array:
         if len(inputs.shape) != 2:
             if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
             else: raise ValueError("Dimensions of input must be 2D")
