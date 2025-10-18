@@ -1,6 +1,7 @@
 ###########
 # IMPORTS #
 ###########
+import sys
 import math
 from enum import Enum
 
@@ -182,11 +183,16 @@ def _bias_initialization(currLayerNodesNum, biasInitFunc):
 # nonlinear problems).
 def _activation(matrix, activationFunc):
     match activationFunc:
-        case ActivationFunc.SIGMOID: return 1 / (1 + np.exp(-matrix))
-        case ActivationFunc.TANH: return (np.exp(matrix) - np.exp(-matrix)) / (np.exp(matrix) + np.exp(-matrix))
+        case ActivationFunc.SIGMOID: return np.where(matrix < 0, np.exp(matrix) / (1 + np.exp(matrix)), 1 / (1 + np.exp(-matrix)))
+        case ActivationFunc.TANH: return np.where(matrix < 0, (np.exp(2 * matrix) - 1) / (np.exp(2 * matrix) + 1), (1 - np.exp(-2 * matrix)) / (1 + np.exp(-2 * matrix)))
         case ActivationFunc.RELU: return np.where(matrix >= 0, matrix, 0)
         case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, matrix, -_leakyReLU_Alpha * matrix)
-        case ActivationFunc.SOFTMAX: return np.exp(matrix) / np.sum(np.exp(matrix), axis = 0)
+        case ActivationFunc.SOFTMAX: 
+            with np.errstate(over='ignore'):
+                matrixExpCatchZero = np.where(matrix >= 0, np.exp(-matrix), -1)
+                matrixExpCatchZero = np.where(matrixExpCatchZero == 0, sys.float_info.min, matrixExpCatchZero)
+                matrixExp = np.where(matrix < 0, np.exp(matrix), 1/matrixExpCatchZero)
+                return matrixExp / np.sum(matrixExp, axis = 0)
 
         case _: raise ValueError("Invalid activation function")
 

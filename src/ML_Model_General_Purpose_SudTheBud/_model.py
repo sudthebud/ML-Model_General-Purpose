@@ -123,7 +123,7 @@ class Model:
     # many times results in a model whose weights and biases are
     # slowly tuned to output the desired result with a high level
     # of precision (if the model parameters are also tuned well).
-    def __back_propagation(self, layers, expectedOut, costFunc, learningRate):
+    def __back_propagation(self, layers, expectedOut, costFunc, learningRate, gradientClipMin = -np.inf, gradientClipMax = np.inf):
 
         weightGradients, biasGradients = [], []
         
@@ -164,6 +164,15 @@ class Model:
         
         for i in range(len(layers) - 1): # For each layer in the neural network besides the output layer...
 
+            # Clip gradients using the vector norm. Gradient clipping may
+            # be necessary if the neural networks gradients tend to explode
+            # in size, causing large oversteps in trying to get to the
+            # minimum of the cost function (and also prevents overflow
+            # errors).
+            weightGradientNorm = np.linalg.norm(weightGradients[i], axis=1)[:, np.newaxis]
+            weightGradients[i] = np.where(weightGradientNorm >= gradientClipMax, weightGradients[i] / weightGradientNorm, weightGradients[i])
+            weightGradients[i] = np.where(weightGradientNorm <= gradientClipMin, weightGradients[i] / weightGradientNorm, weightGradients[i])
+
             # Subtract a small amount of the layer's weights' gradients from
             # the layers' weights. We subtract because dC_dW is a measure of 
             # how much one weight increases the result of the cost function - 
@@ -199,6 +208,8 @@ class Model:
               learningRateMin: float = 0.01,
               learningRateStepSize: int = 10,
               learningRateDecayFactor: float = 0.05,
+              gradientClipMin: float = -np.inf,
+              gradientClipMax: float = np.inf,
               epochPrintInterval: int = 0) -> list[np.array]:
         
         if epochPrintInterval < 0: raise ValueError("epochPrintInterval must be 0 or above")
@@ -254,7 +265,7 @@ class Model:
             # Run the back propagation process to update the weights and biases
             # based on how much they affect the result of the cost function (and
             # thus the output's accuracy)
-            self.__back_propagation(layers, expectedOut, costFunc, learningRateEpoch)
+            self.__back_propagation(layers, expectedOut, costFunc, learningRateEpoch, gradientClipMin, gradientClipMax)
 
             if epochPrintInterval > 0 and (epoch == 0 or (epoch + 1) % epochPrintInterval == 0): print(f"Epoch {epoch+1}: cost {cost if len(cost.shape) == 0 else (1/cost.shape[0] * np.sum(cost, axis = 1))}")
 

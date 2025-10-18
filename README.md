@@ -57,14 +57,14 @@ prediction = model.predict(
 ```
 
 ## Things to Add / Experiment With
-- Residual network and ResNet
 - Batch normalization
 - Neural network regularization
 - Handle multi dimensional inputs
 - Split train and test dataset, then train and predict in one go
-- Data, weight, and gradient clipping
+- Data and weight clipping
 - Implement model metrics
 - Apply other normalization techniques
+- Fix overflow and invalid value errors
 - Rename this to a Neural net repo
 
 # Resources
@@ -87,9 +87,11 @@ prediction = model.predict(
   - [Derivative of the Softmax Function and the Categorical Cross-Entropy Loss](https://medium.com/data-science/derivative-of-the-softmax-function-and-the-categorical-cross-entropy-loss-ffceefc081d1) by _Thomas Kurbiel_
   - [how can i take the derivative of the softmax output in back-prop](https://stackoverflow.com/questions/57631507/how-can-i-take-the-derivative-of-the-softmax-output-in-back-prop) on StackOverflow
   - [Softmax and Backpropagation](https://medium.com/@jsilvawasd/softmax-and-backpropagation-625c0c1f8241) by _Jsilvawasd_
+  - [How to avoid numerical overflow in Sigmoid function: Numerically stable sigmoid function](https://shaktiwadekar.medium.com/how-to-avoid-numerical-overflow-in-sigmoid-function-numerically-stable-sigmoid-function-5298b14720f6) by _Shakti Wadekar_
 - Cost
   - [Undestanding Cost Functions in Machine Learning: Types and Applications](https://medium.com/@anishnama20/understanding-cost-functions-in-machine-learning-types-and-applications-cd7d8cc4b47d) by _Anishnama_
 - Training
   - [A (Very Short) Visual Introduction to Learning Rate Schedulers (With Code)](https://medium.com/@theom/a-very-short-visual-introduction-to-learning-rate-schedulers-with-code-189eddffdb00) by _Théo Martin_
+  - [What is Gradient Clipping?](https://medium.com/data-science/what-is-gradient-clipping-b8e815cdfb48) by _Wanshun Wong_
 - Other
   - [Packaging Python Project](https://packaging.python.org/en/latest/tutorials/packaging-projects) on Python Packaging User Guide
