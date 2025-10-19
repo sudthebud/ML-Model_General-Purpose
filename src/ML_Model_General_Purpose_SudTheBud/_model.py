@@ -169,9 +169,10 @@ class Model:
             # in size, causing large oversteps in trying to get to the
             # minimum of the cost function (and also prevents overflow
             # errors).
-            weightGradientNorm = np.linalg.norm(weightGradients[i], axis=1)[:, np.newaxis]
-            weightGradients[i] = np.where(weightGradientNorm >= gradientClipMax, weightGradients[i] / weightGradientNorm, weightGradients[i])
-            weightGradients[i] = np.where(weightGradientNorm <= gradientClipMin, weightGradients[i] / weightGradientNorm, weightGradients[i])
+            with np.errstate(divide='ignore', invalid='ignore'):
+                weightGradientNorm = np.linalg.norm(weightGradients[i], axis=1)[:, np.newaxis]
+                weightGradients[i] = np.where(weightGradientNorm >= gradientClipMax, weightGradients[i] / weightGradientNorm, weightGradients[i])
+                weightGradients[i] = np.where(weightGradientNorm <= gradientClipMin, weightGradients[i] / weightGradientNorm, weightGradients[i])
 
             # Subtract a small amount of the layer's weights' gradients from
             # the layers' weights. We subtract because dC_dW is a measure of 
@@ -197,12 +198,15 @@ class Model:
     # will determine how much every weight and bias had an effect on making
     # the feed forward output layer result as incorrect as it is (using a
     # cost function that we define) and update the weights and biases
-    # accordingly, by a factor of the learning rate.
+    # accordingly, by a factor of the learning rate. In addition, any data
+    # preprocessing (that the model itself has the functionality to do)
+    # can be done here.
     def train(self, 
               inputs: np.array, 
               expectedOut: np.array, 
               epochs: int = 1000, 
               costFunc: int = _model_helper.CostFunc.BINARY_CROSS_ENTROPY, 
+              batchSize: int = 1,
               learningRateSchedulerFunc: int = _model_helper.LearningRateSchedulerFunc.CONSTANT,
               learningRate: float = 0.1,
               learningRateMin: float = 0.01,
@@ -244,28 +248,49 @@ class Model:
         # Standardize training data
         elif self.__standardize: inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE = _model_helper._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
 
+        # Convert training data into batches. Batching is useful for improving model efficiency
+        # as it allows for smaller, more memory efficient sets of data that can be used to train
+        # the model in parallel. In addition, batching the data can increase noise when calculating
+        # gradient descent, which means that the calculated gradients may not be as accurate to their
+        # true values with the training dataset, but they are less tuned specifically for the training
+        # dataset, and are generalized for testing data or any predictions we make. Basically, batching
+        # can help prevent the model from recognizing patterns in the data and overfitting for only
+        # our training data.
+        inputsBatches = np.array_split(inputs, batchSize, axis = 1)
+        expectedOutBatches = np.array_split(expectedOut, batchSize, axis = 1)
+
         
         costs = np.empty((epochs, self.__numOutputNodes))
 
         for epoch in range(epochs): # For every iteration (epoch)...
 
-            # Run the feed forward process and return the resulting node values for every layer 
-            layers = self.__feed_forward(inputs)
-
-            # Determine the cost of this epoch (measure of how wrong the model was)
-            # Not used in feed forward or back propagation, but to determine accuracy
-            # of the model per epoch and adjust number of epochs accordingly (don't need
-            # to run 1000 epochs if the model reaches a good accuracy at 50 epochs)
-            cost = _model_helper._cost(layers[-1], expectedOut, costFunc)
-            costs[epoch] = cost
+            costsBatches = np.empty((len(inputsBatches), self.__numOutputNodes))
 
             # Determine the learning rate based on the learning rate scheduling function
             learningRateEpoch = _model_helper._learning_rate_scheduler(epoch, epochs - 1, learningRate, learningRateSchedulerFunc, learningRateMin, learningRateStepSize, learningRateDecayFactor)
 
-            # Run the back propagation process to update the weights and biases
-            # based on how much they affect the result of the cost function (and
-            # thus the output's accuracy)
-            self.__back_propagation(layers, expectedOut, costFunc, learningRateEpoch, gradientClipMin, gradientClipMax)
+
+            for batch, (inputsBatch, expectedOutBatch) in enumerate(zip(inputsBatches, expectedOutBatches)): # For every training data batch...
+
+                # Run the feed forward process and return the resulting node values for every layer 
+                layers = self.__feed_forward(inputsBatch)
+
+                # Determine the cost of this batch (measure of how wrong the model was)
+                # Not used in feed forward or back propagation, but to determine accuracy
+                # of the model per epoch and adjust number of epochs accordingly (don't need
+                # to run 1000 epochs if the model reaches a good accuracy at 50 epochs)
+                costBatch = _model_helper._cost(layers[-1], expectedOutBatch, costFunc)
+                costsBatches[batch] = costBatch
+
+                # Run the back propagation process to update the weights and biases
+                # based on how much they affect the result of the cost function (and
+                # thus the output's accuracy)
+                self.__back_propagation(layers, expectedOutBatch, costFunc, learningRateEpoch, gradientClipMin, gradientClipMax)
+
+
+            # Determine cost over all batches for this epoch
+            cost = np.mean(costsBatches, axis = 0, keepdims = True)
+            costs[epoch] = cost
 
             if epochPrintInterval > 0 and (epoch == 0 or (epoch + 1) % epochPrintInterval == 0): print(f"Epoch {epoch+1}: cost {cost if len(cost.shape) == 0 else (1/cost.shape[0] * np.sum(cost, axis = 1))}")
 
