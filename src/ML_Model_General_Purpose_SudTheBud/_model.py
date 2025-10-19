@@ -292,7 +292,7 @@ class Model:
             cost = np.mean(costsBatches, axis = 0, keepdims = True)
             costs[epoch] = cost
 
-            if epochPrintInterval > 0 and (epoch == 0 or (epoch + 1) % epochPrintInterval == 0): print(f"Epoch {epoch+1}: cost {cost if len(cost.shape) == 0 else (1/cost.shape[0] * np.sum(cost, axis = 1))}")
+            if epochPrintInterval > 0 and (epoch == 0 or epoch == epochs - 1 or (epoch + 1) % epochPrintInterval == 0): print(f"Epoch {epoch+1}:\tcost {cost if len(cost.shape) == 0 else (1/cost.shape[1] * np.sum(cost, axis = 1))[0]}")
 
         return costs 
 
