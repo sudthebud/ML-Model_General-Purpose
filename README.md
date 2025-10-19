@@ -11,7 +11,7 @@ Also used to learn how to turn a Python project into a package.
 - In your terminal, change the working directory to your clone of this repository
 - Run ```py -m build```
 - Activate the virtual environment of the project that will use this module
-- Run ```pip install [path\to\whl\file\in\dir]``` with the **.whl** file that gets created in the ```dir``` folder of this repository
+- Run ```pip install [path\to\whl\file\in\dir]``` with the **.whl** file that gets created in the ```dist``` folder of this repository
 - Import the module
 
 ## Example Usage
