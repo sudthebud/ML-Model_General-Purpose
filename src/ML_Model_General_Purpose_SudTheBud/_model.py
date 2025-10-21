@@ -24,6 +24,7 @@ class Model:
                  normalize: bool = False,
                  standardize: bool = False,
                  activationFunc: int | list[int] = _model_helper.ActivationFunc.SIGMOID,
+                 costFunc: int = _model_helper.CostFunc.BINARY_CROSS_ENTROPY, 
                  weightInitFunc: int | list[int] = _model_helper.WeightInitFunc.RANDOM_UNIFORM,
                  biasInitFunc: int | list[int] = _model_helper.BiasInitFunc.ZERO):
         
@@ -45,6 +46,7 @@ class Model:
         if isinstance(activationFunc, list) and len(activationFunc) != len(numHiddenLayerNodes) + 1:
             raise ValueError("activationFunc list length must be the same as the number of layers (except for the input layer)")
         else: self.__activationFunc = activationFunc
+        self.__costFunc = costFunc
 
 
         self.__setup()
@@ -128,14 +130,14 @@ class Model:
     # many times results in a model whose weights and biases are
     # slowly tuned to output the desired result with a high level
     # of precision (if the model parameters are also tuned well).
-    def __back_propagation(self, layers, expectedOut, costFunc, learningRate, gradientClipMin = -np.inf, gradientClipMax = np.inf):
+    def __back_propagation(self, layers, expectedOut, learningRate, gradientClipMin = -np.inf, gradientClipMax = np.inf):
 
         weightGradients, biasGradients = [], []
         
         # Derivative of cost function with respect to final
         # layer output result (which is the result of the
         # activation function).
-        dC_dA = _model_helper._cost_derivative(layers[-1], expectedOut, costFunc)
+        dC_dA = _model_helper._cost_derivative(layers[-1], expectedOut, self.__costFunc)
         chainedDerivatives = dC_dA
         
         for i in range(len(layers)-1, 0, -1): # For each layer in the neural network besides the input layer (going backwards)...
@@ -210,7 +212,6 @@ class Model:
               inputs: np.array, 
               expectedOut: np.array, 
               epochs: int = 1000, 
-              costFunc: int = _model_helper.CostFunc.BINARY_CROSS_ENTROPY, 
               shuffleDataset: bool = True,
               batchSize: int = 1,
               learningRateSchedulerFunc: int = _model_helper.LearningRateSchedulerFunc.CONSTANT,
@@ -288,7 +289,7 @@ class Model:
                 # Not used in feed forward or back propagation, but to determine accuracy
                 # of the model per epoch and adjust number of epochs accordingly (don't need
                 # to run 1000 epochs if the model reaches a good accuracy at 50 epochs)
-                costBatch = _model_helper._cost(layers[-1], expectedOutBatch, costFunc)
+                costBatch = _model_helper._cost(layers[-1], expectedOutBatch, self.__costFunc)
                 costsBatches[batch] = costBatch
 
                 # Save feed forward output to be used for model metrics
@@ -297,7 +298,7 @@ class Model:
                 # Run the back propagation process to update the weights and biases
                 # based on how much they affect the result of the cost function (and
                 # thus the output's accuracy)
-                self.__back_propagation(layers, expectedOutBatch, costFunc, learningRateEpoch, gradientClipMin, gradientClipMax)
+                self.__back_propagation(layers, expectedOutBatch, learningRateEpoch, gradientClipMin, gradientClipMax)
 
 
             # Determine cost over all batches for this epoch
@@ -362,35 +363,33 @@ class Model:
 
         return predicted
     
-    # Save all model attributes, weights, biases, etc to ZIP file
-    def save_model(self, modelName: str, fileDirectory: str = "/"):
-        if not path.isdir(fileDirectory):
-            raise ValueError("Invalid file path")
-        
+
+    # Save all model attributes, weights, biases, etc to ZIP file.
+    def save_model(self, filePath: str):
+        if not filePath.endswith(".sudml"): filePath += ".sudml"
 
         # File path names
-        tempDirPath = path.join(fileDirectory, modelName + "_TEMP")
-        attrPath = path.join(tempDirPath, _model_helper._attrPath)
-        weightsPath = path.join(tempDirPath, _model_helper._weightsPath)
-        biasesPath = path.join(tempDirPath, _model_helper._biasesPath)
-        normalizationCachePath = path.join(tempDirPath, _model_helper._normalizationCachePath)
-        standardizationCachePath = path.join(tempDirPath, +_model_helper._standardizationCachePath)
-
-        zipPath = path.join(fileDirectory, modelName + ".zip")
+        tempDirPath = path.splitext(filePath)[0] + "_TEMP"
+        attrPath = path.join(tempDirPath, _model_helper._ATTRPATH)
+        weightsPath = path.join(tempDirPath, _model_helper._WEIGHTSPATH)
+        biasesPath = path.join(tempDirPath, _model_helper._BIASESPATH)
+        normalizationCachePath = path.join(tempDirPath, _model_helper._NORMALIZATIONCACHEPATH)
+        standardizationCachePath = path.join(tempDirPath, _model_helper._STANDARDIZATIONCACHEPATH)
 
         mkdir(tempDirPath)
         
 
         # Save model attributes and arrays
         attr = {
-            "numInputNodes": self.__numInputNodes,
-            "numHiddenlayerNodes": self.__numHiddenLayerNodes,
-            "numOutputNodes": self.__numOutputNodes,
-            "activationFunc": self.__activationFunc,
-            "weightInitFunc": self.__weightInitFunc,
-            "biasInitFunc": self.__biasInitFunc,
-            "normalize": self.__normalize,
-            "standardize": self.__standardize,
+            'numInputNodes': self.__numInputNodes,
+            'numHiddenLayerNodes': self.__numHiddenLayerNodes,
+            'numOutputNodes': self.__numOutputNodes,
+            'activationFunc': self.__activationFunc,
+            'costFunc': self.__costFunc,
+            'weightInitFunc': self.__weightInitFunc,
+            'biasInitFunc': self.__biasInitFunc,
+            'normalize': self.__normalize,
+            'standardize': self.__standardize,
         }
         with open(attrPath, 'w') as file:
             dump(attr, file)
@@ -406,13 +405,30 @@ class Model:
 
         
         # Zip model attributes and arrays
-        with ZipFile(zipPath, 'w') as zipFile:
-            zipFile.write(attrPath)
-            zipFile.write(weightsPath)
-            zipFile.write(biasesPath)
-            if path.isfile(normalizationCachePath): zipFile.write(normalizationCachePath)
-            if path.isfile(standardizationCachePath): zipFile.write(standardizationCachePath)
+        try:
+            with ZipFile(filePath, 'w') as zipFile:
+                zipFile.write(attrPath, arcname = _model_helper._ATTRPATH)
+                zipFile.write(weightsPath, arcname = _model_helper._WEIGHTSPATH)
+                zipFile.write(biasesPath, arcname = _model_helper._BIASESPATH)
+                if path.isfile(normalizationCachePath): zipFile.write(normalizationCachePath, arcname = _model_helper._NORMALIZATIONCACHEPATH)
+                if path.isfile(standardizationCachePath): zipFile.write(standardizationCachePath, arcname = _model_helper._STANDARDIZATIONCACHEPATH)
+        except Exception as e:
+            print(f"{type(e)}: {e}")
 
 
         # Remove temp directory and all contents
         rmtree(tempDirPath)
+
+    # Load all model attributes that are not set by the
+    # constructor (all the arrays).
+    def _load_model_arrays(self, 
+                           weights, 
+                           biases, 
+                           normalizationCache = {'min': None, 'max': None},
+                           standardizationCache = {'mean': None, 'stDev': None}):
+        self.__weights = weights
+        self.__biases = biases
+        self.__normalizationMin_CACHE = normalizationCache['min']
+        self.__normalizationMax_CACHE = normalizationCache['max']
+        self.__standardizationMean_CACHE = standardizationCache['mean']
+        self.__standardizationStDev_CACHE = standardizationCache['stDev']

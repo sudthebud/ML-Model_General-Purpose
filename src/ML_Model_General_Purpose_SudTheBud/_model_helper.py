@@ -7,7 +7,7 @@ from json import load
 from shutil import rmtree
 from sys import float_info
 import math
-from enum import Enum
+from enum import IntEnum
 
 import numpy as np
 
@@ -15,35 +15,35 @@ import numpy as np
 ####################
 # CONSTS AND ENUMS #
 ####################
-_attrPath = "attr.json"
-_weightsPath = "weights.npz"
-_biasesPath = "biases.npz"
-_normalizationCachePath = "normalizationCache.npz"
-_standardizationCachePath = "standardizationCache.npz"
+_ATTRPATH = "attr.json"
+_WEIGHTSPATH = "weights.npz"
+_BIASESPATH = "biases.npz"
+_NORMALIZATIONCACHEPATH = "normalizationCache.npz"
+_STANDARDIZATIONCACHEPATH = "standardizationCache.npz"
 
-_weight_and_bias_rng = np.random.default_rng()
-class WeightInitFunc(Enum):
+_WEIGHT_AND_BIAS_RNG = np.random.default_rng()
+class WeightInitFunc(IntEnum):
     RANDOM_UNIFORM = 0
     RANDOM_NORMAL = 1
     XAVIER_UNIFORM = 2
     XAVIER_NORMAL = 3
     HE_UNIFORM = 4
     HE_NORMAL = 5
-_bias_small_Alpha_init = 0.01
-class BiasInitFunc(Enum):
+_BIAS_SMALL_ALPHA_INIT = 0.01
+class BiasInitFunc(IntEnum):
     ZERO = 0
     SMALL_ALPHA = 1
     RANDOM_NORMAL= 2
 
-_leakyReLU_Alpha = 0.01
-class ActivationFunc(Enum):
+_LEAKYRELU_ALPHA = 0.01
+class ActivationFunc(IntEnum):
     SIGMOID = 0
     TANH = 1
     RELU = 2
     LEAKY_RELU = 3
     SOFTMAX = 4
 
-class CostFunc(Enum):
+class CostFunc(IntEnum):
     MEAN_SQ_ERROR = 0
     # RT_MEAN_SQ_ERROR = 1
     MEAN_ABS_ERROR = 2
@@ -52,7 +52,7 @@ class CostFunc(Enum):
     # HINGE_LOSS = 5
     # KL_DIVERGENCE = 6
 
-class LearningRateSchedulerFunc(Enum):
+class LearningRateSchedulerFunc(IntEnum):
     CONSTANT = 0,
     STEP_DECAY = 1,
     EXPONENTIAL_DECAY = 2,
@@ -64,31 +64,25 @@ class LearningRateSchedulerFunc(Enum):
 # FUNCTIONS #
 #############
 
+# Load model from a ZIP file.
 def load_model(filePath: str) -> 'Model':
     if not path.isfile(filePath) or not is_zipfile(filePath):
         raise ValueError("Invalid file path")
-    
-
-    # File path names
-    tempDirPath = path.splitext(filePath) + "_TEMP"
-    attrPath = path.join(tempDirPath, _attrPath)
-    weightsPath = path.join(tempDirPath, _weightsPath)
-    biasesPath = path.join(tempDirPath, _biasesPath)
-    normalizationCachePath = path.join(tempDirPath, _normalizationCachePath)
-    standardizationCachePath = path.join(tempDirPath, _standardizationCachePath)
-
-
-    # Unzip files to temp directory
-    with ZipFile(filePath, 'r') as zipFile:
-        zipFile.extractall(tempDirPath)
 
     
     # Load attributes and arrays
-    with open(attrPath, 'r') as file: attr = load(file)
-    weights = list(np.load(weightsPath).values())
-    biases = list(np.load(biasesPath).values())
-    normalizationCache = np.load(normalizationCachePath) if path.isfile(normalizationCachePath) else {'min': None, 'max': None}
-    standardizationCache = np.load(standardizationCachePath) if path.isfile(standardizationCachePath) else {'mean': None, 'stDev': None}
+    with ZipFile(filePath) as zipFile:
+        with zipFile.open(_ATTRPATH, 'r') as file: attr = load(file)
+        weights = list(np.load(zipFile.open(_WEIGHTSPATH, 'r')).values())
+        biases = list(np.load(zipFile.open(_BIASESPATH, 'r')).values())
+
+        if _NORMALIZATIONCACHEPATH in zipFile.namelist():
+            normalizationCache = np.load(zipFile.open(_NORMALIZATIONCACHEPATH, 'r'))
+        else: normalizationCache = {'min': None, 'max': None}
+
+        if _STANDARDIZATIONCACHEPATH in zipFile.namelist():
+            standardizationCache = np.load(zipFile.open(_STANDARDIZATIONCACHEPATH, 'r'))
+        else: standardizationCache = {'mean': None, 'stDev': None}
 
 
     # Create model and set attributes and arrays
@@ -97,20 +91,15 @@ def load_model(filePath: str) -> 'Model':
                   numHiddenLayerNodes = attr['numHiddenLayerNodes'],
                   numOutputNodes = attr['numOutputNodes'],
                   activationFunc = attr['activationFunc'],
+                  costFunc = attr['costFunc'],
                   weightInitFunc = attr['weightInitFunc'],
                   biasInitFunc = attr['biasInitFunc'],
                   normalize = attr['normalize'],
                   standardize = attr['standardize'])
-    model.__weights = weights
-    model.__biases = biases
-    model.__normalizationMin_CACHE = normalizationCache['min']
-    model.__normalizationMax_CACHE = normalizationCache['max']
-    model.__standardizationMean_CACHE = standardizationCache['mean']
-    model.__standardizationStDev_CACHE = standardizationCache['stDev']
+    model._load_model_arrays(weights, biases, normalizationCache, standardizationCache)
 
 
-    # Remove temp directory and all contents
-    rmtree(tempDirPath)
+    return model
 
 
 # Function to shuffle training and output data together. Shuffling
@@ -213,27 +202,27 @@ def _weight_initialization(currLayerNodesNum, prevLayerNodesNum, inputNodes, out
 
     match weightInitFunc:
         case WeightInitFunc.RANDOM_UNIFORM:
-            weight = _weight_and_bias_rng.uniform(-1, 1, weight.shape)
+            weight = _WEIGHT_AND_BIAS_RNG.uniform(-1, 1, weight.shape)
 
         case WeightInitFunc.RANDOM_NORMAL:
-            weight = _weight_and_bias_rng.standard_normal(weight.shape)
+            weight = _WEIGHT_AND_BIAS_RNG.standard_normal(weight.shape)
 
         case WeightInitFunc.XAVIER_UNIFORM:
             distributionBound = (6 / (inputNodes + outputNodes)) ** 0.5
-            weight = _weight_and_bias_rng.uniform(-distributionBound, distributionBound, weight.shape)
+            weight = _WEIGHT_AND_BIAS_RNG.uniform(-distributionBound, distributionBound, weight.shape)
 
         case WeightInitFunc.XAVIER_NORMAL:
             stDev = (2 / (inputNodes + outputNodes)) ** 0.5
-            weight = _weight_and_bias_rng.normal(0, stDev, weight.shape)
+            weight = _WEIGHT_AND_BIAS_RNG.normal(0, stDev, weight.shape)
 
         case WeightInitFunc.HE_UNIFORM:
             distributionLowerBound = -(6 / inputNodes) ** 0.5
             distributionUpperBound = (6 / outputNodes) ** 0.5
-            weight = _weight_and_bias_rng.uniform(distributionLowerBound, distributionUpperBound, weight.shape)
+            weight = _WEIGHT_AND_BIAS_RNG.uniform(distributionLowerBound, distributionUpperBound, weight.shape)
 
         case WeightInitFunc.HE_NORMAL:
             stDev = (2 / inputNodes) ** 0.5
-            weight = _weight_and_bias_rng.normal(0, stDev, weight.shape)
+            weight = _WEIGHT_AND_BIAS_RNG.normal(0, stDev, weight.shape)
 
         case _: raise ValueError("Invalid weight initialization function")
 
@@ -250,8 +239,8 @@ def _bias_initialization(currLayerNodesNum, biasInitFunc):
 
     match biasInitFunc:
         case BiasInitFunc.ZERO: bias.fill(0)
-        case BiasInitFunc.SMALL_ALPHA: bias.fill(_bias_small_Alpha_init)
-        case BiasInitFunc.RANDOM_NORMAL: bias = _weight_and_bias_rng.standard_normal(bias.shape)
+        case BiasInitFunc.SMALL_ALPHA: bias.fill(_BIAS_SMALL_ALPHA_INIT)
+        case BiasInitFunc.RANDOM_NORMAL: bias = _WEIGHT_AND_BIAS_RNG.standard_normal(bias.shape)
 
         case _: raise ValueError("Invalid bias initialization function")
 
@@ -269,7 +258,7 @@ def _activation(matrix, activationFunc):
         case ActivationFunc.SIGMOID: return np.where(matrix < 0, np.exp(matrix) / (1 + np.exp(matrix)), 1 / (1 + np.exp(-matrix)))
         case ActivationFunc.TANH: return np.where(matrix < 0, (np.exp(2 * matrix) - 1) / (np.exp(2 * matrix) + 1), (1 - np.exp(-2 * matrix)) / (1 + np.exp(-2 * matrix)))
         case ActivationFunc.RELU: return np.where(matrix >= 0, matrix, 0)
-        case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, matrix, -_leakyReLU_Alpha * matrix)
+        case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, matrix, -_LEAKYRELU_ALPHA * matrix)
         case ActivationFunc.SOFTMAX: 
             with np.errstate(over='ignore'):
                 matrixExpCatchZero = np.where(matrix >= 0, np.exp(-matrix), -1)
@@ -286,7 +275,7 @@ def _activation_derivative(matrix, activationFunc):
         case ActivationFunc.SIGMOID: return matrix * (1 - matrix)
         case ActivationFunc.TANH: return 1 - matrix ** 2
         case ActivationFunc.RELU: return np.where(matrix >= 0, 1, 0)
-        case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, 1, -_leakyReLU_Alpha)
+        case ActivationFunc.LEAKY_RELU: return np.where(matrix >= 0, 1, -_LEAKYRELU_ALPHA)
 
         case ActivationFunc.SOFTMAX:
             # Softmax is a little more complex, since we have to get the derivative

@@ -18,6 +18,7 @@ A general purpose machine learning model (specifically a neural network) module 
 - Perform **classification or regression metrics** on model outputs
 - Able to handle **any combination** of activation functions, cost functions, and other model parameters
 - **Vectorized data** substantially improves model performance
+- **Save model** to be used again
 
 ## Installation
 1. Clone this repository into your computer
@@ -50,6 +51,7 @@ model = Model(
     numHiddenLayerNodes = [7, 7, 7],
     numOutputNodes = 1,
     activationFunc = [ActivationFunc.SIGMOID, ActivationFunc.SIGMOID, ActivationFunc.RELU],
+    costFunc = CostFunc.BINARY_CROSS_ENTROPY,
     normalize = True
 )
 
@@ -59,7 +61,6 @@ model.train(
     inputs = input_data,
     expectedOut = output_data,
     epochs = 10,
-    costFunc = CostFunc.BINARY_CROSS_ENTROPY,
     learningRate = 0.5
 )
 
