@@ -4,7 +4,7 @@ A general purpose machine learning model (specifically a neural network) module 
 
 ## Functionality
 - Perform **basic data preprocessing**, such as normalization and data shuffling
-- Create models with **custom architectures**
+- Create models with **custom architectures** or **load pre-existing models**
   - Set your own number of layers and neurons for each layer
   - Set activation functions for each layer
   - Change weight and bias initialization functions
@@ -31,7 +31,7 @@ A general purpose machine learning model (specifically a neural network) module 
 
 ```python
 # Imports
-from ML_Model_General_Purpose_SudTheBud import WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, shuffle_dataset, normalizate_dataset, standardize_dataset, regression_metrics, classification_metrics
+from ML_Model_General_Purpose_SudTheBud import shuffle_dataset, normalizate_dataset, standardize_dataset, Model, load_model, WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, regression_metrics, classification_metrics
 
 
 # Data

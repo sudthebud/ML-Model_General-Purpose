@@ -1,7 +1,11 @@
 ###########
 # IMPORTS #
 ###########
-import sys
+from os import path
+from zipfile import is_zipfile, ZipFile
+from json import load
+from shutil import rmtree
+from sys import float_info
 import math
 from enum import Enum
 
@@ -11,6 +15,12 @@ import numpy as np
 ####################
 # CONSTS AND ENUMS #
 ####################
+_attrPath = "attr.json"
+_weightsPath = "weights.npz"
+_biasesPath = "biases.npz"
+_normalizationCachePath = "normalizationCache.npz"
+_standardizationCachePath = "standardizationCache.npz"
+
 _weight_and_bias_rng = np.random.default_rng()
 class WeightInitFunc(Enum):
     RANDOM_UNIFORM = 0
@@ -53,6 +63,55 @@ class LearningRateSchedulerFunc(Enum):
 #############
 # FUNCTIONS #
 #############
+
+def load_model(filePath: str) -> 'Model':
+    if not path.isfile(filePath) or not is_zipfile(filePath):
+        raise ValueError("Invalid file path")
+    
+
+    # File path names
+    tempDirPath = path.splitext(filePath) + "_TEMP"
+    attrPath = path.join(tempDirPath, _attrPath)
+    weightsPath = path.join(tempDirPath, _weightsPath)
+    biasesPath = path.join(tempDirPath, _biasesPath)
+    normalizationCachePath = path.join(tempDirPath, _normalizationCachePath)
+    standardizationCachePath = path.join(tempDirPath, _standardizationCachePath)
+
+
+    # Unzip files to temp directory
+    with ZipFile(filePath, 'r') as zipFile:
+        zipFile.extractall(tempDirPath)
+
+    
+    # Load attributes and arrays
+    with open(attrPath, 'r') as file: attr = load(file)
+    weights = list(np.load(weightsPath).values())
+    biases = list(np.load(biasesPath).values())
+    normalizationCache = np.load(normalizationCachePath) if path.isfile(normalizationCachePath) else {'min': None, 'max': None}
+    standardizationCache = np.load(standardizationCachePath) if path.isfile(standardizationCachePath) else {'mean': None, 'stDev': None}
+
+
+    # Create model and set attributes and arrays
+    from ._model import Model
+    model = Model(numInputNodes = attr['numInputNodes'],
+                  numHiddenLayerNodes = attr['numHiddenLayerNodes'],
+                  numOutputNodes = attr['numOutputNodes'],
+                  activationFunc = attr['activationFunc'],
+                  weightInitFunc = attr['weightInitFunc'],
+                  biasInitFunc = attr['biasInitFunc'],
+                  normalize = attr['normalize'],
+                  standardize = attr['standardize'])
+    model.__weights = weights
+    model.__biases = biases
+    model.__normalizationMin_CACHE = normalizationCache['min']
+    model.__normalizationMax_CACHE = normalizationCache['max']
+    model.__standardizationMean_CACHE = standardizationCache['mean']
+    model.__standardizationStDev_CACHE = standardizationCache['stDev']
+
+
+    # Remove temp directory and all contents
+    rmtree(tempDirPath)
+
 
 # Function to shuffle training and output data together. Shuffling
 # data is useful so that the model does not learn to recognize patterns
@@ -214,7 +273,7 @@ def _activation(matrix, activationFunc):
         case ActivationFunc.SOFTMAX: 
             with np.errstate(over='ignore'):
                 matrixExpCatchZero = np.where(matrix >= 0, np.exp(-matrix), -1)
-                matrixExpCatchZero = np.where(matrixExpCatchZero == 0, sys.float_info.min, matrixExpCatchZero)
+                matrixExpCatchZero = np.where(matrixExpCatchZero == 0, float_info.min, matrixExpCatchZero)
                 matrixExp = np.where(matrix < 0, np.exp(matrix), 1/matrixExpCatchZero)
                 return matrixExp / np.sum(matrixExp, axis = 0)
 

@@ -1,6 +1,11 @@
 ###########
 # IMPORTS #
 ###########
+from os import path, mkdir
+from json import dump
+from zipfile import ZipFile
+from shutil import rmtree
+
 import numpy as np
 
 from . import _model_helper
@@ -356,3 +361,58 @@ class Model:
         elif predicted.shape[1] == 1: predicted = np.reshape(predicted, predicted.shape[0])
 
         return predicted
+    
+    # Save all model attributes, weights, biases, etc to ZIP file
+    def save_model(self, modelName: str, fileDirectory: str = "/"):
+        if not path.isdir(fileDirectory):
+            raise ValueError("Invalid file path")
+        
+
+        # File path names
+        tempDirPath = path.join(fileDirectory, modelName + "_TEMP")
+        attrPath = path.join(tempDirPath, _model_helper._attrPath)
+        weightsPath = path.join(tempDirPath, _model_helper._weightsPath)
+        biasesPath = path.join(tempDirPath, _model_helper._biasesPath)
+        normalizationCachePath = path.join(tempDirPath, _model_helper._normalizationCachePath)
+        standardizationCachePath = path.join(tempDirPath, +_model_helper._standardizationCachePath)
+
+        zipPath = path.join(fileDirectory, modelName + ".zip")
+
+        mkdir(tempDirPath)
+        
+
+        # Save model attributes and arrays
+        attr = {
+            "numInputNodes": self.__numInputNodes,
+            "numHiddenlayerNodes": self.__numHiddenLayerNodes,
+            "numOutputNodes": self.__numOutputNodes,
+            "activationFunc": self.__activationFunc,
+            "weightInitFunc": self.__weightInitFunc,
+            "biasInitFunc": self.__biasInitFunc,
+            "normalize": self.__normalize,
+            "standardize": self.__standardize,
+        }
+        with open(attrPath, 'w') as file:
+            dump(attr, file)
+       
+        np.savez_compressed(weightsPath, *self.__weights)
+        np.savez_compressed(biasesPath, *self.__biases)
+
+        if self.__normalizationMin_CACHE is not None and self.__normalizationMax_CACHE is not None:
+            np.savez_compressed(normalizationCachePath, min = self.__normalizationMin_CACHE, max = self.__normalizationMax_CACHE)
+
+        if self.__standardizationMean_CACHE is not None and self.__standardizationStDev_CACHE is not None:
+            np.savez_compressed(standardizationCachePath, mean = self.__standardizationMean_CACHE, stDev = self.__standardizationStDev_CACHE)
+
+        
+        # Zip model attributes and arrays
+        with ZipFile(zipPath, 'w') as zipFile:
+            zipFile.write(attrPath)
+            zipFile.write(weightsPath)
+            zipFile.write(biasesPath)
+            if path.isfile(normalizationCachePath): zipFile.write(normalizationCachePath)
+            if path.isfile(standardizationCachePath): zipFile.write(standardizationCachePath)
+
+
+        # Remove temp directory and all contents
+        rmtree(tempDirPath)
