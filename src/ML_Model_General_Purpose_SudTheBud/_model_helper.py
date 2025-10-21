@@ -58,14 +58,28 @@ class LearningRateSchedulerFunc(Enum):
 # data is useful so that the model does not learn to recognize patterns
 # in the data order or the model can "bounce out" of a local minimum
 # of the cost function during training.
-def shuffle_dataset(inputs: np.array, outputs: np.array) -> tuple[np.array, np.array]:
+def shuffle_dataset(inputs: np.array, outputs: np.array) -> tuple[np.array, np.array, np.array]:
+    if len(inputs.shape) != 2:
+        if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
+        else: raise ValueError("Dimensions of predicted values must be 2D")
+    if len(outputs.shape) != 2:
+        if len(outputs.shape) == 1: outputs = outputs[np.newaxis, :]
+        else: raise ValueError("Dimensions of output must be 2D")
+    if inputs.shape[0] != outputs.shape[0]:
+        raise ValueError("Number of training samples does not equal number of outputs")
+
+
     rng = np.random.default_rng()
-    permutationIndices = rng.permutation(inputs.shape[1])
+    permutationIndices = rng.permutation(inputs.shape[0])
 
-    inputs = inputs[:, permutationIndices]
-    outputs = outputs[:, permutationIndices]
+    inputs = inputs[permutationIndices, :]
+    outputs = outputs[permutationIndices, :]
 
-    return inputs, outputs
+    # Thanks to @Ali on StackOverflow for this
+    reversePermutationIndices = np.empty_like(permutationIndices)
+    reversePermutationIndices[permutationIndices] = np.arange(permutationIndices.size)
+
+    return inputs, outputs, reversePermutationIndices
 
 # Normalize training data, and save the input metrics for normalization
 # (e.g. min, max) to be cached for when we have to normalize prediction
@@ -76,10 +90,15 @@ def shuffle_dataset(inputs: np.array, outputs: np.array) -> tuple[np.array, np.a
 # This method will only set the normalization metrics when the first set
 # of training data is given to the model (a large batch of >1 samples of 
 # training data). Currently, the method implemented is min-max normalization.
-def _normalization(inputs, normalizationMin_CACHE, normalizationMax_CACHE):
-    if normalizationMin_CACHE is None and normalizationMax_CACHE is None and inputs.shape[1] > 1:
-        normalizationMin_CACHE = np.min(inputs, axis=1)[:, np.newaxis]
-        normalizationMax_CACHE = np.max(inputs, axis=1)[:, np.newaxis]
+def normalizate_dataset(inputs, normalizationMin_CACHE, normalizationMax_CACHE):
+    if len(inputs.shape) != 2:
+        if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
+        else: raise ValueError("Dimensions of predicted values must be 2D")
+
+
+    if normalizationMin_CACHE is None and normalizationMax_CACHE is None and inputs.shape[0] > 1:
+        normalizationMin_CACHE = np.min(inputs, axis=0)[np.newaxis, :]
+        normalizationMax_CACHE = np.max(inputs, axis=0)[np.newaxis, :]
 
     if normalizationMin_CACHE is not None and normalizationMin_CACHE is not None:
         with np.errstate(divide='ignore', invalid='ignore'): 
@@ -100,10 +119,15 @@ def _normalization(inputs, normalizationMin_CACHE, normalizationMax_CACHE):
 # This method will only set the standardization metrics when the first set
 # of training data is given to the model (a large batch of >1 samples of 
 # training data).
-def _standardization(inputs, standardizationMean_CACHE, standardizationStDev_CACHE):
-    if standardizationMean_CACHE is None and standardizationStDev_CACHE is None and inputs.shape[1] > 1:
-        standardizationMean_CACHE = np.mean(inputs, axis=1)[:, np.newaxis]
-        standardizationStDev_CACHE = np.std(inputs, axis=1)[:, np.newaxis]
+def standardize_dataset(inputs, standardizationMean_CACHE, standardizationStDev_CACHE):
+    if len(inputs.shape) != 2:
+        if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
+        else: raise ValueError("Dimensions of predicted values must be 2D")
+
+
+    if standardizationMean_CACHE is None and standardizationStDev_CACHE is None and inputs.shape[0] > 1:
+        standardizationMean_CACHE = np.mean(inputs, axis=0)[np.newaxis, :]
+        standardizationStDev_CACHE = np.std(inputs, axis=0)[np.newaxis, :]
 
     if standardizationMean_CACHE is not None and standardizationStDev_CACHE is not None:
         with np.errstate(divide='ignore', invalid='ignore'): 
@@ -296,7 +320,7 @@ def _cost_derivative(predicted, actual, costFunc):
         
         case CostFunc.MEAN_ABS_ERROR: 
             # 1 / n * sum((y_p - y_a) / |y_p - y_a|)
-            result = (predicted - actual) / abs(predicted - actual)
+            result = (predicted - actual) / np.abs(predicted - actual)
             allResults = 1 / numTests * result
         
         case CostFunc.BINARY_CROSS_ENTROPY: 
@@ -346,3 +370,105 @@ def _learning_rate_scheduler(epoch,
         case _: raise ValueError("Invalid learning rate scheduler function")
 
     return learningRate
+
+
+# Calculate metrics for the output of a linear regression model.
+# Linear regression models are models that predict a numerical value
+# that can be among any range (such as predicting what someone's
+# height is). Metrics, therefore, measure by how much the predicted
+# values are off from their true values.
+def regression_metrics(predicted: np.array, actual: np.array) -> tuple[np.array, np.array, np.array, np.array, np.array]:
+    if not (actual == 0 or actual == 1).all(): raise ValueError("Values of actual (expected outputs) must be either 0 or 1")
+
+    if len(predicted.shape) != 2:
+        if len(predicted.shape) == 1: predicted = predicted[np.newaxis, :]
+        else: raise ValueError("Dimensions of predicted values must be 2D")
+    if len(actual.shape) != 2:
+        if len(actual.shape) == 1: actual = actual[np.newaxis, :]
+        else: raise ValueError("Dimensions of output must be 2D")
+    if predicted.shape != actual.shape:
+        raise ValueError("Shape of predicted values array does not equal shape of actual values array")
+    
+    numTests = actual.shape[0]
+
+
+    # Residuals for all data points (actual - predicted)
+    residual = actual - predicted
+
+
+    # R^2 = 1 - sum(residual^2) / sum((actual - mean(actual))^2)
+    r2 = 1 - np.sum(residual ** 2, axis = 0) / np.sum((actual - np.mean(actual, axis = 0)) ** 2, axis = 0)
+
+    # Mean squared error = 1 / n * sum(residual^2)
+    mse = 1 / numTests * np.sum(residual ** 2, axis = 0)
+
+    # Root mean squared error = sqrt(1 / n * sum(residual ** 2))
+    rmse = mse ** 0.5
+
+    # Mean absolute error = 1 / n * sum(|residual|)
+    mae = 1 / numTests * np.sum(np.abs(residual), axis = 0)
+
+    # Mean absolute percentage error = 1 / n * sum(|residual / actual|)
+    mape = 1 / numTests * np.sum(np.abs(residual / actual), axis = 0)
+
+
+    # Remove axes if it is convenient
+    for metric in [r2, mse, rmse, mae, mape]:
+        if metric.shape == (1, 1): metric = metric[0, 0]
+        elif metric.shape[0] == 1: metric = np.reshape(metric, metric.shape[1])
+        elif metric.shape[1] == 1: metric = np.reshape(metric, metric.shape[0])
+    
+    return r2, mse, rmse, mae, mape
+
+# Calculate metrics for the output of a classification model. 
+# Classification models are models that predict whether the input 
+# falls into a certain class (such as whether the object in an
+# image is an apple), so for each class, their can only be a 
+# positive "yes" or negative "no". Metrics, therefore, measure
+# how many predictions are classified correctly.
+def classification_metrics(predicted: np.array, actual: np.array, threshold: float = 0.5, multilabel: bool = False):
+    if not (actual == 0 or actual == 1).all(): raise ValueError("Values of actual (expected outputs) must be either 0 or 1")
+
+    if len(predicted.shape) != 2:
+        if len(predicted.shape) == 1: predicted = predicted[np.newaxis, :]
+        else: raise ValueError("Dimensions of predicted values must be 2D")
+    if len(actual.shape) != 2:
+        if len(actual.shape) == 1: actual = actual[np.newaxis, :]
+        else: raise ValueError("Dimensions of output must be 2D")
+    if predicted.shape != actual.shape:
+        raise ValueError("Shape of predicted values array does not equal shape of actual values array")
+    
+
+    if multilabel or actual.shape[1] == 1:
+        predicted = np.where(predicted > threshold, 1, 0) # Positive for class if probability is over threshold
+    else:
+        predictedTEMP = np.zeros_like(predicted)
+        predictedTEMP[np.arange(predicted.shape[0]), np.argmax(predicted, axis = 1)] = 1
+
+        predicted = predictedTEMP    
+
+
+    # Accuracy = correct classifications / total
+    accuracy = np.where(predicted == actual, 1, 0)
+    accuracy = np.sum(accuracy, axis = 0) / actual.shape[0]
+
+    # Recall = correct classified positives / total true positives
+    recall = np.where(predicted == actual and actual == 1, 1, 0)
+    recall = np.sum(recall, axis = 0) / np.sum(actual, axis = 0)
+
+    # False positive = incorrect classified positives / total true negatives
+    fpr = np.where(predicted != actual and actual == 0, 1, 0)
+    fpr = np.sum(fpr, axis = 0) / (actual.shape[0] - np.sum(actual, axis = 0))
+
+    # Precision = correct classified positives / all classified positives
+    precision = np.where(predicted == actual and actual == 1, 1, 0)
+    precision = np.sum(precision, axis = 0) / np.sum(predicted, axis = 0)
+
+
+    # Remove axes if it is convenient
+    for metric in [accuracy, recall, fpr, precision]:
+        if metric.shape == (1, 1): metric = metric[0, 0]
+        elif metric.shape[0] == 1: metric = np.reshape(metric, metric.shape[1])
+        elif metric.shape[1] == 1: metric = np.reshape(metric, metric.shape[0])
+
+    return accuracy, recall, fpr, precision

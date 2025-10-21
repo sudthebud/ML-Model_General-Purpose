@@ -206,6 +206,7 @@ class Model:
               expectedOut: np.array, 
               epochs: int = 1000, 
               costFunc: int = _model_helper.CostFunc.BINARY_CROSS_ENTROPY, 
+              shuffleDataset: bool = True,
               batchSize: int = 1,
               learningRateSchedulerFunc: int = _model_helper.LearningRateSchedulerFunc.CONSTANT,
               learningRate: float = 0.1,
@@ -214,7 +215,8 @@ class Model:
               learningRateDecayFactor: float = 0.05,
               gradientClipMin: float = -np.inf,
               gradientClipMax: float = np.inf,
-              epochPrintInterval: int = 0) -> list[np.array]:
+              epochPrintInterval: int = 0,
+              returnOutput: bool = False) -> tuple[list[np.array], np.array]:
         
         if epochPrintInterval < 0: raise ValueError("epochPrintInterval must be 0 or above")
         
@@ -229,24 +231,24 @@ class Model:
         if inputs.shape[0] != expectedOut.shape[0]:
             raise ValueError("Number of training samples does not equal number of outputs")
 
-        # Transpose into n features x m samples
-        inputs = inputs.T
-        expectedOut = expectedOut.T
-
-        if inputs.shape[0] != self.__numInputNodes:
+        if inputs.shape[1] != self.__numInputNodes:
             raise ValueError("Number of input features must match value set for numInputNodes")
-        if expectedOut.shape[0] != self.__numOutputNodes:
+        if expectedOut.shape[1] != self.__numOutputNodes:
             raise ValueError("Number of output features must match value set for numOutputNodes")
         if epochs <= 0:
             raise ValueError("Number of epochs must be greater than 0")
         
         # Shuffle training data
-        inputs, expectedOut = _model_helper.shuffle_dataset(inputs, expectedOut)
+        if shuffleDataset: inputs, expectedOut, reverseIndices = _model_helper.shuffle_dataset(inputs, expectedOut)
 
         # Normalize training data
-        if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE = _model_helper._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
+        if self.__normalize: inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE = _model_helper.normalizate_dataset(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
         # Standardize training data
-        elif self.__standardize: inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE = _model_helper._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
+        elif self.__standardize: inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE = _model_helper.standardize_dataset(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
+
+        # Transpose into n features x m samples
+        inputs = inputs.T
+        expectedOut = expectedOut.T
 
         # Convert training data into batches. Batching is useful for improving model efficiency
         # as it allows for smaller, more memory efficient sets of data that can be used to train
@@ -261,10 +263,12 @@ class Model:
 
         
         costs = np.empty((epochs, self.__numOutputNodes))
+        outputs = np.empty((epochs, ) + expectedOut.shape) if returnOutput else None
 
         for epoch in range(epochs): # For every iteration (epoch)...
 
             costsBatches = np.empty((len(inputsBatches), self.__numOutputNodes))
+            outputsBatches = np.empty(expectedOut.shape) if returnOutput else None
 
             # Determine the learning rate based on the learning rate scheduling function
             learningRateEpoch = _model_helper._learning_rate_scheduler(epoch, epochs - 1, learningRate, learningRateSchedulerFunc, learningRateMin, learningRateStepSize, learningRateDecayFactor)
@@ -282,6 +286,9 @@ class Model:
                 costBatch = _model_helper._cost(layers[-1], expectedOutBatch, costFunc)
                 costsBatches[batch] = costBatch
 
+                # Save feed forward output to be used for model metrics
+                if returnOutput: np.concatenate(outputsBatches, layers[-1])
+
                 # Run the back propagation process to update the weights and biases
                 # based on how much they affect the result of the cost function (and
                 # thus the output's accuracy)
@@ -292,9 +299,28 @@ class Model:
             cost = np.mean(costsBatches, axis = 0, keepdims = True)
             costs[epoch] = cost
 
+            if returnOutput: outputs[epoch] = outputsBatches
+
             if epochPrintInterval > 0 and (epoch == 0 or epoch == epochs - 1 or (epoch + 1) % epochPrintInterval == 0): print(f"Epoch {epoch+1}:\tcost {cost if len(cost.shape) == 0 else (1/cost.shape[1] * np.sum(cost, axis = 1))[0]}")
 
-        return costs 
+
+        # Transpose into e epochs x m samples x n features, and remove axes if it is convenient
+        if returnOutput:
+            
+            outputs = np.transpose(outputs, (0, 2, 1))
+
+
+            if outputs.shape[-2:] == (1, 1): outputs = outputs[:, 0, 0]
+            elif outputs.shape[1] == 1: outputs = np.reshape(outputs, (outputs.shape[0], outputs.shape[2]))
+            elif outputs.shape[2] == 1: outputs = np.reshape(outputs, (outputs.shape[0], outputs.shape[1]))
+
+            if outputs.shape[0] == 1: outputs = outputs[0]
+
+
+            outputs = outputs[:, reverseIndices]
+
+
+        return costs, outputs
 
     # Use the model on any number of data points. This method will run the 
     # feed forward algorithm on the input (only once since we have used
@@ -307,17 +333,16 @@ class Model:
         if len(inputs.shape) != 2:
             if len(inputs.shape) == 1: inputs = inputs[np.newaxis, :]
             else: raise ValueError("Dimensions of input must be 2D")
-
-        # Transpose into n features x m samples
-        inputs = inputs.T
-
-        if inputs.shape[0] != self.__numInputNodes:
+        if inputs.shape[1] != self.__numInputNodes:
             raise ValueError("Number of input features must match value set for numInputNodes")
         
         # Normalize prediction input
-        if self.__normalize: inputs, _, _ = _model_helper._normalization(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
+        if self.__normalize: inputs, _, _ = _model_helper.normalizate_dataset(inputs, self.__normalizationMin_CACHE, self.__normalizationMax_CACHE)
         # Standardize prediction input
-        elif self.__standardize: inputs, _, _ = _model_helper._standardization(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
+        elif self.__standardize: inputs, _, _ = _model_helper.standardize_dataset(inputs, self.__standardizationMean_CACHE, self.__standardizationStDev_CACHE)
+
+        # Transpose into n features x m samples
+        inputs = inputs.T
 
         
         # Run the feed forward algorithm and return the output layer

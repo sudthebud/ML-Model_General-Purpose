@@ -1,24 +1,37 @@
 # General Purpose ML Model
 
-A general purpose machine learning model (specifically a neural network) module written in Python, developed as a learning project to refresh my brain on machine learning and neural network principles. This project was aided by a learning resource by Aadil Mallick along with other resources (linked in resources), but the code was written by myself and with as much of an understanding as possible of the concepts behind what I was coding and how it played into the neural network process (as evidenced by the lengthy comments in the code). Basically, I tried to understand how neural networks worked and the math behind them, and wrote the code from there, rather than copying code or instructions blindly.
+A general purpose machine learning model (specifically a neural network) module written in Python, developed as a learning project for machine learning basics and Python package creation. Can be downloaded, installed, and imported by users in order to easily create custom neural network models with varying architectures for their own applications. Used a variety of resources (linked in the [resources](#resources) section) as a _guide_ while writing the neural network functionality from scratch.
 
-This model is configurable, allowing a user who imports these Python scripts to use any number of layers, as well as choosing the number of nodes for every single layer, the activation function for every layer, the cost function, and the learning rate.
-
-Also used to learn how to turn a Python project into a package.
+## Functionality
+- Perform **basic data preprocessing**, such as normalization and data shuffling
+- Create models with **custom architectures**
+  - Set your own number of layers and neurons for each layer
+  - Set activation functions for each layer
+  - Change weight and bias initialization functions
+- Train models with **custom training parameters**
+  - Set number of epochs, epoch logging, and model training outupt
+  - Separate data into batches
+  - Set cost function for final layer
+  - Set learning rate, as well as learning rate scheduler function
+  - Clip gradients to mitigate exploding/vanishing gradients problem
+- Test model on **test data or your own inputs** to predict
+- Perform **classification or regression metrics** on model outputs
+- Able to handle **any combination** of activation functions, cost functions, and other model parameters
+- **Vectorized data** substantially improves model performance
 
 ## Installation
-- Clone this repository into your computer
-- In your terminal, change the working directory to your clone of this repository
-- Run ```py -m build```
-- Activate the virtual environment of the project that will use this module
-- Run ```pip install [path\to\whl\file\in\dir]``` with the **.whl** file that gets created in the ```dist``` folder of this repository
-- Import the module
+1. Clone this repository into your computer
+2. In your terminal, change the working directory to your clone of this repository
+3. Run ```py -m build```
+4. Activate the virtual environment of the project that will use this module
+5. Run ```pip install [path\to\whl\file\in\dist]``` with the **.whl** file that gets created in the ```dist``` folder of this repository
+6. Import the module
 
 ## Example Usage
 
 ```python
 # Imports
-from ML_Model_General_Purpose_SudTheBud import WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, shuffle_dataset, Model
+from ML_Model_General_Purpose_SudTheBud import WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, shuffle_dataset, normalizate_dataset, standardize_dataset, regression_metrics, classification_metrics
 
 
 # Data
@@ -29,7 +42,7 @@ input_data = np.array([
 ])
 output_data = np.array([1, 0, 1])
 
-input_data, output_data = shuffle_dataset(input_data, output_data)
+input_data, output_data, _ = shuffle_dataset(input_data, output_data)
 
 # Setup
 model = Model(
@@ -54,6 +67,9 @@ model.train(
 prediction = model.predict(
     inputs = np.array([[125, 40, 30]])
 )
+
+# Metrics
+accuracy, recall, fpr, precision = classification_metrics(predicted, actual)
 ```
 
 ## Things to Add / Experiment With
@@ -62,7 +78,6 @@ prediction = model.predict(
 - Handle multi dimensional inputs
 - Split train and test dataset, then train and predict in one go
 - Data and weight clipping
-- Implement model metrics
 - Apply other normalization techniques
 - Fix overflow and invalid value errors
 - Rename this to a Neural net repo
@@ -95,5 +110,13 @@ prediction = model.predict(
 - Training
   - [A (Very Short) Visual Introduction to Learning Rate Schedulers (With Code)](https://medium.com/@theom/a-very-short-visual-introduction-to-learning-rate-schedulers-with-code-189eddffdb00) by _Théo Martin_
   - [What is Gradient Clipping?](https://medium.com/data-science/what-is-gradient-clipping-b8e815cdfb48) by _Wanshun Wong_
+- Metrics
+  - [Classification: Accuracy, recall, precision, and related metrics](https://developers.google.com/machine-learning/crash-course/classification/accuracy-precision-recall) on Google Developers
+  - [A Comprehensive Overview of Regression Evaluation Metrics](https://developer.nvidia.com/blog/a-comprehensive-overview-of-regression-evaluation-metrics/) on Nvidia Developer
 - Other
   - [Packaging Python Project](https://packaging.python.org/en/latest/tutorials/packaging-projects) on Python Packaging User Guide
+
+## Implementations
+
+- [**MNIST Model**](https://github.com/sudthebud/ML-Model_MNIST)
+  - Model trained to classify images in the MNIST dataset, a basic dataset of images of handwritten numerals
