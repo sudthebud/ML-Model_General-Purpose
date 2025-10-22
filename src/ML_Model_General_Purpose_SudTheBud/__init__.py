@@ -1,2 +1,7 @@
-from ._model_helper import shuffle_dataset, normalizate_dataset, standardize_dataset, load_model, WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, regression_metrics, classification_metrics
+from ._model_helper import (
+    shuffle_dataset, normalizate_dataset, standardize_dataset, 
+    load_model, 
+    WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, 
+    regression_metrics, classification_metrics
+)
 from ._model import Model

@@ -32,7 +32,18 @@ A general purpose machine learning model (specifically a neural network) module 
 
 ```python
 # Imports
-from ML_Model_General_Purpose_SudTheBud import shuffle_dataset, normalizate_dataset, standardize_dataset, Model, load_model, WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, regression_metrics, classification_metrics
+import numpy as np
+
+from ML_Model_General_Purpose_SudTheBud import (
+  # Dataset processing
+  shuffle_dataset, normalizate_dataset, standardize_dataset, 
+  # Model creation
+  Model, load_model, 
+  # Model enums
+  WeightInitFunc, BiasInitFunc, ActivationFunc, CostFunc, LearningRateSchedulerFunc, 
+  # Prediction metrics
+  regression_metrics, classification_metrics
+)
 
 
 # Data
@@ -70,7 +81,7 @@ prediction = model.predict(
 )
 
 # Metrics
-accuracy, recall, fpr, precision = classification_metrics(predicted, actual)
+accuracy, recall, fpr, precision, f1 = classification_metrics(prediction, actual)
 ```
 
 ## Things to Add / Experiment With

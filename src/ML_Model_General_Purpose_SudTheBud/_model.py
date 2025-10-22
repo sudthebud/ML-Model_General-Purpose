@@ -274,7 +274,7 @@ class Model:
         for epoch in range(epochs): # For every iteration (epoch)...
 
             costsBatches = np.empty((len(inputsBatches), self.__numOutputNodes))
-            outputsBatches = np.empty(expectedOut.shape) if returnOutput else None
+            outputsBatches = np.empty((expectedOut.shape[0], 0)) if returnOutput else None
 
             # Determine the learning rate based on the learning rate scheduling function
             learningRateEpoch = _model_helper._learning_rate_scheduler(epoch, epochs - 1, learningRate, learningRateSchedulerFunc, learningRateMin, learningRateStepSize, learningRateDecayFactor)
@@ -293,7 +293,7 @@ class Model:
                 costsBatches[batch] = costBatch
 
                 # Save feed forward output to be used for model metrics
-                if returnOutput: np.concatenate(outputsBatches, layers[-1])
+                if returnOutput: outputsBatches = np.concatenate((outputsBatches, layers[-1]), axis = 1)
 
                 # Run the back propagation process to update the weights and biases
                 # based on how much they affect the result of the cost function (and

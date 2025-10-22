@@ -68,6 +68,8 @@ class LearningRateSchedulerFunc(IntEnum):
 def load_model(filePath: str) -> 'Model':
     if not path.isfile(filePath) or not is_zipfile(filePath):
         raise ValueError("Invalid file path")
+    if path.splitext(filePath)[1] != ".sudml":
+        raise ValueError("File must be of type \".sudml\"")
 
     
     # Load attributes and arrays
@@ -426,8 +428,6 @@ def _learning_rate_scheduler(epoch,
 # height is). Metrics, therefore, measure by how much the predicted
 # values are off from their true values.
 def regression_metrics(predicted: np.array, actual: np.array) -> tuple[np.array, np.array, np.array, np.array, np.array]:
-    if not (actual == 0 or actual == 1).all(): raise ValueError("Values of actual (expected outputs) must be either 0 or 1")
-
     if len(predicted.shape) != 2:
         if len(predicted.shape) == 1: predicted = predicted[np.newaxis, :]
         else: raise ValueError("Dimensions of predicted values must be 2D")
@@ -462,9 +462,7 @@ def regression_metrics(predicted: np.array, actual: np.array) -> tuple[np.array,
 
     # Remove axes if it is convenient
     for metric in [r2, mse, rmse, mae, mape]:
-        if metric.shape == (1, 1): metric = metric[0, 0]
-        elif metric.shape[0] == 1: metric = np.reshape(metric, metric.shape[1])
-        elif metric.shape[1] == 1: metric = np.reshape(metric, metric.shape[0])
+        if len(metric.shape) == 1 and metric.shape[0] == 1: return metric[0]
     
     return r2, mse, rmse, mae, mape
 
@@ -474,8 +472,8 @@ def regression_metrics(predicted: np.array, actual: np.array) -> tuple[np.array,
 # image is an apple), so for each class, their can only be a 
 # positive "yes" or negative "no". Metrics, therefore, measure
 # how many predictions are classified correctly.
-def classification_metrics(predicted: np.array, actual: np.array, threshold: float = 0.5, multilabel: bool = False):
-    if not (actual == 0 or actual == 1).all(): raise ValueError("Values of actual (expected outputs) must be either 0 or 1")
+def classification_metrics(predicted: np.array, actual: np.array, threshold: float = 0.5, multilabel: bool = False) -> tuple[np.array, np.array, np.array, np.array, np.array]:
+    if not ((actual == 0) | (actual == 1)).all(): raise ValueError("Values of actual (expected outputs) must be either 0 or 1")
 
     if len(predicted.shape) != 2:
         if len(predicted.shape) == 1: predicted = predicted[np.newaxis, :]
@@ -490,33 +488,39 @@ def classification_metrics(predicted: np.array, actual: np.array, threshold: flo
     if multilabel or actual.shape[1] == 1:
         predicted = np.where(predicted > threshold, 1, 0) # Positive for class if probability is over threshold
     else:
-        predictedTEMP = np.zeros_like(predicted)
-        predictedTEMP[np.arange(predicted.shape[0]), np.argmax(predicted, axis = 1)] = 1
+        predicted_TEMP = np.zeros_like(predicted)
+        predicted_TEMP[np.arange(predicted.shape[0]), np.argmax(predicted, axis = 1)] = 1 # Positive for class if probability is the greatest of all classes
 
-        predicted = predictedTEMP    
+        predicted = predicted_TEMP
 
 
     # Accuracy = correct classifications / total
-    accuracy = np.where(predicted == actual, 1, 0)
+    if multilabel or actual.shape[1] == 1:
+        accuracy = np.where(predicted == actual, 1, 0)
+    else:
+        predicted_TEMP = np.argmax(predicted, axis = 1)
+        actual_TEMP = np.argmax(actual, axis = 1)
+        accuracy = np.where(predicted_TEMP == actual_TEMP, 1, 0) # Different here because accurate prediction means EVERY class value matches
     accuracy = np.sum(accuracy, axis = 0) / actual.shape[0]
 
     # Recall = correct classified positives / total true positives
-    recall = np.where(predicted == actual and actual == 1, 1, 0)
+    recall = np.where((predicted == actual) & (actual == 1), 1, 0)
     recall = np.sum(recall, axis = 0) / np.sum(actual, axis = 0)
 
     # False positive = incorrect classified positives / total true negatives
-    fpr = np.where(predicted != actual and actual == 0, 1, 0)
+    fpr = np.where((predicted != actual) & (actual == 0), 1, 0)
     fpr = np.sum(fpr, axis = 0) / (actual.shape[0] - np.sum(actual, axis = 0))
 
     # Precision = correct classified positives / all classified positives
-    precision = np.where(predicted == actual and actual == 1, 1, 0)
+    precision = np.where((predicted == actual) & (actual == 1), 1, 0)
     precision = np.sum(precision, axis = 0) / np.sum(predicted, axis = 0)
+
+    # F1 score = 2 x precision x recall / (precision + recall)
+    f1 = 2 * precision * recall / (precision + recall)
 
 
     # Remove axes if it is convenient
-    for metric in [accuracy, recall, fpr, precision]:
-        if metric.shape == (1, 1): metric = metric[0, 0]
-        elif metric.shape[0] == 1: metric = np.reshape(metric, metric.shape[1])
-        elif metric.shape[1] == 1: metric = np.reshape(metric, metric.shape[0])
+    for metric in [accuracy, recall, fpr, precision, f1]:
+        if len(metric.shape) == 1 and metric.shape[0] == 1: return metric[0]
 
-    return accuracy, recall, fpr, precision
+    return accuracy, recall, fpr, precision, f1
