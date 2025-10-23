@@ -1,6 +1,8 @@
 # General Purpose ML Model
 
-A general purpose machine learning model (specifically a neural network) module written in Python, developed as a learning project for machine learning basics and Python package creation. Can be downloaded, installed, and imported by users in order to easily create custom neural network models with varying architectures for their own applications. Used a variety of resources (linked in the [resources](#resources) section) as a _guide_ while writing the neural network functionality from scratch.
+A **general purpose machine learning model (specifically neural network) package** written in Python, developed as a learning project for machine learning/neural network basics and Python package creation. Can be downloaded, installed, and imported by users in order to easily create custom neural network models with varying architectures for their own applications. Used a variety of resources (linked in the [resources](#resources) section) as a _guide_ while writing the neural network functionality from scratch.
+
+**View the [implementations](#implementations) section** to see repositories that have implemented this package to create neural networks trained on certain datasets or for certain tasks.
 
 ## Functionality
 - Perform **basic data preprocessing**, such as normalization and data shuffling
@@ -24,9 +26,9 @@ A general purpose machine learning model (specifically a neural network) module 
 1. Clone this repository into your computer
 2. In your terminal, change the working directory to your clone of this repository
 3. Run ```py -m build```
-4. Activate the virtual environment of the project that will use this module
+4. Activate the virtual environment of the project that will use this package
 5. Run ```pip install [path\to\whl\file\in\dist]``` with the **.whl** file that gets created in the ```dist``` folder of this repository
-6. Import the module
+6. Import the package
 
 ## Example Usage
 
@@ -86,15 +88,15 @@ accuracy, recall, fpr, precision, f1 = classification_metrics(prediction, actual
 
 ## Things to Add / Experiment With
 - Batch normalization
-- Neural network regularization
+- Regularization
 - Handle multi dimensional inputs
-- Split train and test dataset, then train and predict in one go
+- Method to split train and test dataset, then train and test in one go
 - Data and weight clipping
 - Apply other normalization techniques
 - Fix overflow and invalid value errors
 - Rename this to a Neural net repo
 
-# Resources
+## Resources
 - Basic neural network concepts and math
   - [Learn to Build a Neural Network from Scratch](https://medium.com/@waadlingaadil/learn-to-build-a-neural-network-from-scratch-yes-really-cac4ca457efc#:~:text=1) by _Aadil Mallick_
   - [Backpropagation, intuitively | Deep Learning Chapter 3](https://www.youtube.com/watch?v=Ilg3gGewQ5U) by _3Blue1Brown_
