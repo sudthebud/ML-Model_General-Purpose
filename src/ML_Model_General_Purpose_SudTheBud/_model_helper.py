@@ -125,7 +125,7 @@ def shuffle_dataset(inputs: np.array, outputs: np.array) -> tuple[np.array, np.a
     inputs = inputs[permutationIndices, :]
     outputs = outputs[permutationIndices, :]
 
-    # Thanks to @Ali on StackOverflow for this
+    # Thanks to @Ali on StackOverflow for this (https://stackoverflow.com/questions/11649577/how-to-invert-a-permutation-array-in-numpy)
     reversePermutationIndices = np.empty_like(permutationIndices)
     reversePermutationIndices[permutationIndices] = np.arange(permutationIndices.size)
 
