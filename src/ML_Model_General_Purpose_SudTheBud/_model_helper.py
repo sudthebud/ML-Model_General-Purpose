@@ -507,7 +507,7 @@ def classification_metrics(predicted: np.array, actual: np.array, threshold: flo
     recall = np.where((predicted == actual) & (actual == 1), 1, 0)
     recall = np.sum(recall, axis = 0) / np.sum(actual, axis = 0)
 
-    # False positive = incorrect classified positives / total true negatives
+    # False positive rate = incorrect classified positives / total true negatives
     fpr = np.where((predicted != actual) & (actual == 0), 1, 0)
     fpr = np.sum(fpr, axis = 0) / (actual.shape[0] - np.sum(actual, axis = 0))
 
