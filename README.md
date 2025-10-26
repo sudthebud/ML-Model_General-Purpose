@@ -1,4 +1,4 @@
-# General Purpose ML Model
+# General Purpose ML Model Package
 
 A **general purpose machine learning model (specifically neural network) package** written in Python, developed as a learning project for machine learning/neural network basics and Python package creation. Can be downloaded, installed, and imported by users in order to easily create custom neural network models with varying architectures for their own applications. Used a variety of resources (linked in the [resources](#resources) section) as a _guide_ while writing the neural network functionality from scratch.
 
